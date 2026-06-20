@@ -1,19 +1,35 @@
+<script setup>
+    import { ref } from 'vue';
+
+    const isHovered = ref({
+        dashboard: false,
+        activity: false,
+        challenges: false,
+        badges: false,
+        profile: false,
+    })
+</script>
+
 <template>
     <aside class="side-bar">
         <router-link class="button" to="/">
-            <img class="icon" src="../../public/dashboard-icon-black.png"/>
+            <img class="icon" src='/dashboard-icon-black.png'/>
             <span>Dashboard</span>
         </router-link>
         <router-link class="button" to="/">
+            <img class="icon" src='/activity-icon-black.png'/>
             <span>Log Activity</span>
         </router-link>
         <router-link class="button" to="/">
+            <img class="icon" src='/challenges-icon-black.png'/>
             <span>Challenges</span>
         </router-link>
         <router-link class="button" to="/">
+            <img class="icon" src='/badges-icon-black.png'/>
             <span>Badges</span>
         </router-link>
         <router-link class="button" to="/">
+            <img class="icon" src='/profile-icon-black.png'/>
             <span>Profile</span>
         </router-link>
     </aside>
@@ -34,7 +50,6 @@
 
      .side-bar .icon {
         display: inline;
-        fill: #556b2f;
         padding: 0 10px 0 10px;
         width: 22px;
     }
@@ -52,9 +67,7 @@
     }
 
     .side-bar .button:hover {
-        background-color: var(--primary);
-        color: white;
-        fill: white;
+        background-color: var(--primary-light);
     }
 
 </style>

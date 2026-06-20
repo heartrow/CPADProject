@@ -8,8 +8,8 @@
 
 <style>
     .page-header {
-        background: #556b2f;
-        height: 50px;
+        background: var(--primary);
+        height: 25px;
         font-family: Arial, Helvetica, sans-serif;
         color: white;
         padding: 15px;
@@ -22,8 +22,8 @@
     }
 
     h1 {
-        font-size: 30px;
-        padding-left: 10px;
+        font-size: 20px;
+        padding-left: 30px;
     }
 </style>
 
