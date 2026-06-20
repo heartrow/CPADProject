@@ -1,9 +1,7 @@
 <template>
     <aside class="side-bar">
         <router-link class="button" to="/">
-            <svg class="icon">
-                <image src="../../public/layout-dashboard.svg"></image>
-            </svg>
+            <img class="icon" src="../../public/dashboard-icon-black.png"/>
             <span>Dashboard</span>
         </router-link>
         <router-link class="button" to="/">
@@ -24,7 +22,7 @@
 <style>
     .side-bar {
         left: 0;
-        background-color: #d7c9b1;
+        background-color: var(--bg-card);
         position: fixed;
         height: 100%;
         width: 175px;
@@ -38,12 +36,13 @@
         display: inline;
         fill: #556b2f;
         padding: 0 10px 0 10px;
+        width: 22px;
     }
 
    
     .side-bar .button {
         text-decoration: none;
-        color: #282014;
+        color: black;
         padding: 10px;
         display: flex;
         align-items: center;
@@ -53,7 +52,7 @@
     }
 
     .side-bar .button:hover {
-        background-color: #556b2f;
+        background-color: var(--primary);
         color: white;
         fill: white;
     }
