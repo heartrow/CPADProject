@@ -39,7 +39,7 @@
         width: 22px;
     }
 
-   
+
     .side-bar .button {
         text-decoration: none;
         color: black;
