@@ -68,7 +68,7 @@ const handleLogin = () => {
 }
 
 .login-card {
-  background-color: var(--bg-card);
+  background-color: var(--primary);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 2.5rem;
@@ -162,7 +162,7 @@ const handleLogin = () => {
 }
 
 .submit-btn {
-  background-color: var(--primary);
+  background-color: var(--bg-body);
   color: var(--primary-light);
   border: none;
   border-radius: 6px;
@@ -177,7 +177,7 @@ const handleLogin = () => {
 }
 
 .submit-btn:hover {
-  background-color: #465926;
+  background-color: #1a140d;
 }
 
 .submit-btn:active {

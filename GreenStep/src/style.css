@@ -1,10 +1,14 @@
 :root {
     --primary: #556b2f;
-    --primary-light: #f5f5dc; 
+    --primary-light: #f5f5dc;
     --accent: #8e7340;
     --text-main: #3e2723;
     --text-muted: #8d6e63;
-    --bg-body: #282014;
+    --bg-body: #acbc91;
     --bg-card: #d7c9b1;
     --border: #bfae95;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
 }
