@@ -1,68 +1,65 @@
 <script async setup>
-
-    import TopBar from '@/components/TopBar.vue';
-    import SideBar from '@/components/SideBar.vue'
-
+import TopBar from '@/components/TopBar.vue'
+import SideBar from '@/components/SideBar.vue'
 </script>
 
-
 <template>
-    <TopBar/>
-    <SideBar/>
-    <main class="home-main">
+  <TopBar />
+  <SideBar />
+  <main class="home-main">
     <div id="view-dashboard" class="view-section active">
       <div class="dashboard-grid">
-
         <div class="col-left">
-          <div class="card" style="flex: 2;">
+          <div class="card" style="flex: 2">
             <h2 class="card-title">Carbon Footprint Performance Trend</h2>
             <div class="chart-render-space">[ Chart.js Rendering Space ]</div>
           </div>
 
-          <div class="card" style="flex: 0.8; justify-content: center;">
+          <div class="card" style="flex: 0.8; justify-content: center">
             <h2 class="card-title">Eco-Tip of the Day</h2>
             <div class="tip-box">
-              Unplug electronics when not in use. Standby power can account for up to 10% of your total household electricity bill!
+              Unplug electronics when not in use. Standby power can account for up to 10% of your
+              total household electricity bill!
             </div>
           </div>
         </div>
 
         <div class="col-right">
           <div class="data-row">
-            <div class="card" style="flex: 1;">
+            <div class="card" style="flex: 1">
               <h2 class="card-title">Weekly Data</h2>
               <span class="metric-label">Avg CO2 Logged</span>
-              <div class="metric-value">42.5 <span style="font-size: 1.4rem;">kg</span></div>
+              <div class="metric-value">42.5 <span style="font-size: 1.4rem">kg</span></div>
             </div>
 
-            <div class="card" style="flex: 1;">
+            <div class="card" style="flex: 1">
               <h2 class="card-title">Daily Data</h2>
               <span class="metric-label">Today's Footprint</span>
-              <div class="metric-value">6.1 <span style="font-size: 1.4rem;">kg</span></div>
+              <div class="metric-value">6.1 <span style="font-size: 1.4rem">kg</span></div>
             </div>
           </div>
 
-          <div class="card" style="flex: 2;">
-            <h2 class="card-title">📅 Logging Consistency Calendar</h2>
+          <div class="card" style="flex: 2">
+            <h2 class="card-title">Logging Consistency Calendar</h2>
             <p class="calendar-desc">
-              Track continuous logging frequencies. Darker green blocks map smaller carbon impact targets met.
+              Track continuous logging frequencies. Darker green blocks map smaller carbon impact
+              targets met.
             </p>
           </div>
         </div>
-
       </div>
     </div>
   </main>
 </template>
 
 <style>
-    .home-main {
+.home-main {
   color: var(--text-main); /* Using your global variables */
   background-color: var(--bg-body);
   min-height: 100vh;
   padding: 2rem;
   /* Add a left margin here if your SideBar is fixed to the left of the screen */
-  margin-left: 225px
+  margin-left: 225px;
 }
 
 /* Base Card Styling (Derived from your color palette) */
@@ -152,5 +149,39 @@
   color: var(--text-muted);
   margin-bottom: 1.25rem;
   background: transparent;
+}
+
+@media (max-width: 768px) {
+  .home-main {
+    margin-left: 0;
+    padding: 1rem;
+    padding-bottom: 90px;
+    background-color: var(--bg-body)
+  }
+
+  .dashboard-grid,
+  .col-left,
+  .col-right,
+  .data-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .card {
+    background-color: var(--bg-card);
+    border: 1px solid #e0e0e0;
+    box-shadow: none;
+    padding: 1.25rem;
+    flex: auto !important;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    color: var(--text-main);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
 }
 </style>
