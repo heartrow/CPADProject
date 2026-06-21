@@ -5,27 +5,27 @@
 <template>
     <aside class="side-bar">
         <router-link class="button" to="/dashboard">
-            <img class="icon" src='/dashboard-icon-black.png' alt="Home"/>
-            <span>Home</span>
+            <img class="icon" src='../assets/dashboard-icon-black.png'/>
+            <span>Dashboard</span>
         </router-link>
 
         <router-link class="button" to="/activity">
-            <img class="icon" src='/activity-icon-black.png' alt="Activity"/>
-            <span>Activity</span>
+            <img class="icon" src='../assets/activity-icon-black.png'/>
+            <span>Log Activity</span>
         </router-link>
 
         <router-link class="button" to="/challenges">
-            <img class="icon" src='/challenges-icon-black.png' alt="Challenges"/>
+            <img class="icon" src='../assets/challenges-icon-black.png'/>
             <span>Challenges</span>
         </router-link>
 
         <router-link class="button" to="/badges">
-            <img class="icon" src='/badges-icon-black.png' alt="Badges"/>
+            <img class="icon" src='../assets/badges-icon-black.png'/>
             <span>Badges</span>
         </router-link>
 
         <router-link class="button" to="/profile">
-            <img class="icon" src='/profile-icon-black.png' alt="Profile"/>
+            <img class="icon" src='../assets/profile-icon-black.png'/>
             <span>Profile</span>
         </router-link>
     </aside>
