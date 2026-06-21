@@ -45,32 +45,24 @@ const vehicleType = ref('petrol');
 const distance = ref('');
 
 const handleSubmit = () => {
-  // Here is where you would normally calculate the carbon footprint
-  // and send the data to your backend or store.
   console.log(`Logging ${distance.value}km via ${vehicleType.value}`);
-
-  // Close the modal after submitting!
-  // In a real app, you might emit the data back to the parent: emit('submit', data)
-  // For now, we'll just trigger the close event.
 };
 </script>
 
 <style scoped>
-/* --- The Magic that makes it a Modal --- */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent black */
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999; /* Ensures it sits on top of TopBar and SideBar */
+  z-index: 999;
 }
 
-/* --- The actual popup box --- */
 .modal-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
@@ -79,8 +71,6 @@ const handleSubmit = () => {
   max-width: 450px;
   padding: 1.5rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-
-  /* A nice little pop-in animation */
   animation: modalPop 0.3s ease-out;
 }
 
@@ -89,7 +79,6 @@ const handleSubmit = () => {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* --- Interior Styling --- */
 .modal-header {
   display: flex;
   justify-content: space-between;
