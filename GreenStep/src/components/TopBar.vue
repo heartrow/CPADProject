@@ -10,7 +10,6 @@
     .page-header {
         background: var(--primary);
         height: 25px;
-        font-family: Arial, Helvetica, sans-serif;
         color: white;
         padding: 15px;
         display: flex;

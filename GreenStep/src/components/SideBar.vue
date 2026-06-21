@@ -36,7 +36,6 @@
         width: 175px;
         padding: 25px;
         font-size: 17px;
-        font-family: Arial, Helvetica, sans-serif;
         font-weight: bold;
     }
 
