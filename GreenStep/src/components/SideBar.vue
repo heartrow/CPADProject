@@ -1,5 +1,5 @@
 <script setup>
-    import { ref } from 'vue';
+import { ref } from 'vue'
 </script>
 
 <template>
@@ -32,82 +32,82 @@
 </template>
 
 <style scoped>
-    /* Default Desktop Styles */
-    .side-bar {
-        left: 0;
-        top: 60px;
-        background-color: var(--bg-card);
-        position: fixed;
-        height: calc(100vh - 60px);
-        width: 175px;
-        padding: 25px 15px;
-        font-size: 16px;
-        font-weight: bold;
-        border-right: 1px solid var(--border);
-        z-index: 20;
-    }
+/* Default Desktop Styles */
+.side-bar {
+  left: 0;
+  top: 60px;
+  background-color: var(--bg-card);
+  position: fixed;
+  height: calc(100vh - 60px);
+  width: 175px;
+  padding: 25px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  border-right: 1px solid var(--border);
+  z-index: 20;
+}
 
-    .side-bar .icon {
-        display: inline;
-        margin-right: 10px;
-        width: 22px;
-    }
+.side-bar .icon {
+  display: inline;
+  margin-right: 10px;
+  width: 22px;
+}
 
-    .side-bar .button {
-        text-decoration: none;
-        color: var(--text-main);
-        padding: 10px;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        border-radius: 7px;
-        transition: background 0.2s;
-    }
+.side-bar .button {
+  text-decoration: none;
+  color: var(--text-main);
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  border-radius: 7px;
+  transition: background 0.2s;
+}
 
-    .side-bar .button:hover, .side-bar .router-link-active {
-        background-color: var(--primary-light);
-        color: var(--primary);
-    }
+.side-bar .button:hover,
+.side-bar .router-link-active {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
 
-    /* Mobile Styles: Transforms into Bottom Navigation */
-    @media (max-width: 768px) {
-        .side-bar {
-            top: auto;
-            bottom: 0;
-            width: 100%;
-            height: 70px; /* Fixed height for bottom nav */
-            padding: 0;
-            display: flex;
-            justify-content: space-around; /* Distributes all 5 evenly */
-            align-items: center;
-            border-right: none;
-            border-top: 1px solid #e0e0e0;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-        }
+/* Mobile Styles: Transforms into Bottom Navigation */
+@media (max-width: 768px) {
+  .side-bar {
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: 70px;
+    padding: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-right: none;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  }
 
-        .side-bar .button {
-            flex-direction: column;
-            justify-content: center;
-            /* Slightly smaller text to fit 5 items comfortably */
-            font-size: 11px;
-            font-weight: 600;
-            padding: 5px;
-            margin-bottom: 0;
-            color: #666;
-            flex: 1; /* Ensures each button takes up equal width */
-            text-align: center;
-        }
+  .side-bar .button {
+    flex-direction: column;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px;
+    margin-bottom: 0;
+    color: #666;
+    flex: 1;
+    text-align: center;
+  }
 
-        .side-bar .icon {
-            margin-right: 0;
-            margin-bottom: 4px;
-            width: 22px; /* Scaled down slightly for 5 items */
-            height: 22px;
-        }
+  .side-bar .icon {
+    margin-right: 0;
+    margin-bottom: 4px;
+    width: 22px;
+    height: 22px;
+  }
 
-        .side-bar .router-link-active {
-            background-color: transparent;
-            color: var(--primary);
-        }
-    }
+  .side-bar .router-link-active {
+    background-color: transparent;
+    color: var(--primary);
+  }
+}
 </style>
