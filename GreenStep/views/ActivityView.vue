@@ -34,6 +34,14 @@ const presets = ref([
   },
 ])
 
+// NEW: Dummy data for the activity log history
+const recentLogs = ref([
+  { id: 101, icon: '🚗', title: 'Commute to Johor Campus', time: 'Today, 8:30 AM', co2: 2.4 },
+  { id: 102, icon: '☕', title: 'Morning Coffee', time: 'Today, 9:15 AM', co2: 0.3 },
+  { id: 103, icon: '⚡', title: 'AC Usage (3 hours)', time: 'Yesterday, 10:00 PM', co2: 1.5 },
+  { id: 104, icon: '🍔', title: 'Standard Lunch', time: 'Yesterday, 1:00 PM', co2: 1.2 },
+])
+
 const openModal = (type) => {
   activeModal.value = type
 }
@@ -50,9 +58,10 @@ const logPreset = (activityName) => {
 <template>
   <TopBar></TopBar>
   <SideBar></SideBar>
+
   <main class="activity-main">
-    <div class="view-section active">
-      <div class="card">
+    <div class="activity-content-grid">
+      <div class="card form-column">
         <div class="activity-header">
           <div>
             <h2 class="card-title">📝 Event-Based Logger</h2>
@@ -108,8 +117,32 @@ const logPreset = (activityName) => {
           </button>
         </div>
       </div>
+
+      <div class="card log-column">
+        <div class="activity-header">
+          <div>
+            <h2 class="card-title">🕒 Recent Activity</h2>
+            <p class="subtitle">Your latest logged entries.</p>
+          </div>
+        </div>
+
+        <div class="log-list">
+          <div v-for="log in recentLogs" :key="log.id" class="log-item">
+            <div class="log-icon-wrapper">
+              <span class="log-icon">{{ log.icon }}</span>
+            </div>
+            <div class="log-info">
+              <div class="log-title">{{ log.title }}</div>
+              <div class="log-time">{{ log.time }}</div>
+            </div>
+            <div class="log-co2">+{{ log.co2 }} kg</div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
+    <!-- Modals -->
     <TransportModal v-if="activeModal === 'transport'" @close="activeModal = null" />
     <MealModal v-if="activeModal === 'meal'" @close="activeModal = null" />
     <EnergyModal v-if="activeModal === 'energy'" @close="activeModal = null" />
@@ -119,7 +152,6 @@ const logPreset = (activityName) => {
 </template>
 
 <style scoped>
-/* Main Layout structure (mirrors DashboardView setup) */
 .activity-main {
   padding: 2rem;
   min-height: 100vh;
@@ -127,18 +159,21 @@ const logPreset = (activityName) => {
   margin-left: 225px;
 }
 
-/* Card Styling */
+.activity-content-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
 .card {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 2.5rem;
-  margin-bottom: 2.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 800px; /* Optional: keeps it from stretching too wide on massive screens */
 }
 
-/* Header Elements */
 .activity-header {
   display: flex;
   justify-content: space-between;
@@ -183,7 +218,6 @@ const logPreset = (activityName) => {
   letter-spacing: 1px;
 }
 
-/* --- Quick Add Buttons Grid --- */
 .quick-add-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -205,7 +239,7 @@ const logPreset = (activityName) => {
 }
 
 .quick-add-btn:hover {
-  background-color: #e5e5c8; /* Slightly darker hover state */
+  background-color: #e5e5c8;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -220,7 +254,6 @@ const logPreset = (activityName) => {
   color: var(--text-main);
 }
 
-/* --- One-Tap Templates List --- */
 .presets-list {
   display: flex;
   flex-direction: column;
@@ -242,7 +275,7 @@ const logPreset = (activityName) => {
 }
 
 .preset-btn:hover {
-  background-color: rgba(245, 245, 220, 0.4); /* Faint primary-light overlay */
+  background-color: rgba(245, 245, 220, 0.4);
   border-color: var(--primary);
 }
 
@@ -307,16 +340,75 @@ const logPreset = (activityName) => {
   background-color: var(--primary-light);
 }
 
-/* Responsive adjustments for mobile */
+.log-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.log-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.log-icon-wrapper {
+  background-color: var(--bg-body);
+  width: 45px;
+  height: 45px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  border: 1px solid var(--border);
+}
+
+.log-icon {
+  font-size: 1.4rem;
+}
+
+.log-info {
+  flex-grow: 1;
+}
+
+.log-title {
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.2rem;
+}
+
+.log-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.log-co2 {
+  font-weight: 800;
+  color: #d9534f;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 1200px) {
+  .activity-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .activity-main {
     padding: 1rem;
-    padding-bottom: 90px; /* Accounts for bottom nav */
+    padding-bottom: 90px;
     margin-left: 0;
   }
 
   .quick-add-grid {
-    grid-template-columns: repeat(2, 1fr); /* 2x2 grid on mobile */
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .activity-header {

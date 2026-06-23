@@ -1,25 +1,242 @@
-<script async setup>
+<script setup>
+import { ref, computed } from 'vue'
+import TopBar from '@/components/TopBar.vue'
+import SideBar from '@/components/SideBar.vue'
 
-    import TopBar from '@/components/TopBar.vue';
-    import SideBar from '@/components/SideBar.vue'
+const challenges = ref([
+  {
+    id: 1,
+    title: '🌍 Local Campus Energy Reduction',
+    desc: 'Reduce collective electricity consumption across the residential blocks by 1,000 kWh.',
+    currentProgress: 650,
+    targetGoal: 1000,
+    unit: 'kWh',
+    actionText: 'View Leaderboard',
+    isSecondary: false
+  },
+  {
+    id: 2,
+    title: '🚴 Zero-Emission Commute Week',
+    desc: 'Log 500 km of collective walking or cycling instead of using petrol transport.',
+    currentProgress: 100,
+    targetGoal: 500,
+    unit: 'km',
+    actionText: 'Leave Challenge',
+    isSecondary: true
+  }
+])
 
+const calculatePercentage = (current, target) => {
+  return Math.round((current / target) * 100);
+}
 </script>
 
-
 <template>
-    <TopBar/>
-    <SideBar/>
-    <body>
-       
-    </body>
+  <TopBar />
+  <SideBar />
+
+  <main class="challenges-main">
+    <div class="view-section active">
+
+      <div class="card outer-card">
+        <div class="header-section">
+          <h2 class="card-title">Active Community Challenges</h2>
+          <p class="subtitle">Work together with your group to hit collective reduction targets.</p>
+        </div>
+
+        <div class="challenges-grid">
+
+          <div v-for="challenge in challenges" :key="challenge.id" class="card challenge-card">
+
+            <h3 class="challenge-title">{{ challenge.title }}</h3>
+            <p class="challenge-desc">{{ challenge.desc }}</p>
+
+            <div class="progress-section">
+              <div class="progress-bar-bg">
+                <div
+                  class="progress-bar-fill"
+                  :style="{ width: calculatePercentage(challenge.currentProgress, challenge.targetGoal) + '%' }"
+                >
+                  {{ calculatePercentage(challenge.currentProgress, challenge.targetGoal) }}%
+                </div>
+              </div>
+              <p class="progress-text">
+                {{ challenge.currentProgress }} / {{ challenge.targetGoal }} {{ challenge.unit }}
+              </p>
+            </div>
+
+            <button
+              class="btn-action"
+              :class="{ 'secondary': challenge.isSecondary }"
+            >
+              {{ challenge.actionText }}
+            </button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 </template>
 
-<style>
-    body {
-        color: white;
-        background-color: #acbc91;
-    }
-    p {
-        background: transparent;
-    }
+<style scoped>
+/* Main Layout */
+.challenges-main {
+  padding: 2rem;
+  min-height: 100vh;
+  background-color: var(--bg-body);
+  margin-left: 225px;
+}
+
+/* Base Card Styling */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header-section {
+  margin-bottom: 2.5rem;
+}
+
+.card-title {
+  font-size: 1.75rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+/* --- Challenges Grid --- */
+.challenges-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns side-by-side */
+  gap: 2rem;
+}
+
+/* Individual Challenge Cards */
+.challenge-card {
+  padding: 2rem;
+  box-shadow: none;
+  border: 2px dashed var(--border); /* Matches your dashed border design */
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.challenge-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.challenge-title {
+  color: var(--primary);
+  font-size: 1.25rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.challenge-desc {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  line-height: 1.5;
+  margin-bottom: 2rem;
+  flex-grow: 1;
+}
+
+/* --- Progress Bar --- */
+.progress-section {
+  margin-bottom: 1.5rem;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  background-color: var(--primary-light);
+  border-radius: 20px;
+  height: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.progress-bar-fill {
+  background-color: var(--primary);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: bold;
+  border-radius: 20px;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 30px;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  color: var(--text-muted);
+  text-align: right;
+  font-weight: 600;
+}
+
+/* --- Buttons --- */
+.btn-action {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.85rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.btn-action:hover {
+  background-color: #4a5e29;
+}
+
+/* Secondary Button State (For the "Leave Challenge" button) */
+.btn-action.secondary {
+  background-color: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.btn-action.secondary:hover {
+  background-color: #ffeaea;
+  color: #d9534f;
+  border-color: #d9534f;
+}
+
+/* --- Responsive Layout --- */
+@media (max-width: 1024px) {
+  .challenges-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .challenges-main {
+    margin-left: 0;
+    padding: 1rem;
+    padding-bottom: 90px;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+}
 </style>

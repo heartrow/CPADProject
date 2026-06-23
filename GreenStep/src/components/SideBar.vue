@@ -19,11 +19,6 @@ import { ref } from 'vue'
             <span>Challenges</span>
         </router-link>
 
-        <router-link class="button" to="/badges">
-            <img class="icon" src='../assets/badges-icon-black.png'/>
-            <span>Badges</span>
-        </router-link>
-
         <router-link class="button" to="/profile">
             <img class="icon" src='../assets/profile-icon-black.png'/>
             <span>Profile</span>
