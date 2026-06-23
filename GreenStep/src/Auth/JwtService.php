@@ -12,7 +12,7 @@ final class JwtService {
     public function __construct() { 
         $this->secret = $_ENV['JWT_SECRET']; 
         $this->ttl    = (int)($_ENV['JWT_TTL'] ?? 3600); 
-        $this->issuer = $_ENV['JWT_ISSUER'] ?? 'books-api'; 
+        $this->issuer = $_ENV['JWT_ISSUER'] ?? 'greenstep_api'; 
     } 
     public function issue(int $userId, array $extra = []): string { 
         $now = time(); 

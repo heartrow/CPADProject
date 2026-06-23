@@ -1,15 +1,17 @@
-<?php
-
+<?php 
 namespace App\Controllers; 
 use App\Auth\JwtService; 
 use App\Repositories\UserRepository; 
 use Psr\Http\Message\ResponseInterface as Response; 
 use Psr\Http\Message\ServerRequestInterface as Request; 
-
-final class AuthController {
-    public function __construct (private UserRepository $users, private JwtService $jwt) {}
-
-      public function register(Request $r, Response $s): Response { 
+  
+final class AuthController { 
+    public function __construct( 
+        private UserRepository $users,
+        private JwtService $jwt, 
+    ) {} 
+  
+    public function register(Request $r, Response $s): Response { 
         $b = (array)$r->getParsedBody(); 
         $errors = []; 
         if (empty($b['name'])  || mb_strlen($b['name']) < 2) $errors['name']  = 'min 2 chars'; 
@@ -26,7 +28,7 @@ final class AuthController {
                   'user'=>$this->users->findById($id)], 201); 
     } 
   
-    public function login(Request $r, Response $s): Response {    
+    public function login(Request $r, Response $s): Response {
         $b = (array)$r->getParsedBody();
         $u = $this->users->findByEmail($b['email'] ?? '');
         if (!$u || !password_verify($b['password'] ?? '', $u['password_hash']))
@@ -39,8 +41,8 @@ final class AuthController {
             'user'         => [
                 'id'    => $u['id'],
                 'name'  => $u['name'],
-                'email' => $u['email'],
                 'role'  => $u['role'],
+                'email' => $u['email'],
             ],
         ]);
     }
@@ -51,13 +53,8 @@ final class AuthController {
         return $u ? $this->json($s, $u) 
                   : $this->json($s, ['error'=>'Not found'], 404); 
     } 
-    private function json(Response $r, $data, int $status = 200): Response { 
-        $r->getBody()->write(json_encode( 
-            $data, 
-            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE 
-            | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT 
-        )); 
-        return $r->withHeader('Content-Type','application/json; charset=utf-8') 
-                ->withStatus($status); 
+    private function json(Response $s, $d, int $c=200): Response { 
+        $s->getBody()->write(json_encode($d, JSON_PRETTY_PRINT)); 
+        return $s->withHeader('Content-Type','application/json')->withStatus($c); 
     } 
-}
+} 

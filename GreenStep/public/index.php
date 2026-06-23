@@ -1,17 +1,16 @@
 <?php 
-use Psr\Http\Message\ResponseInterface as Response; 
-use Psr\Http\Message\ServerRequestInterface as Request; 
+use Dotenv\Dotenv; 
 use Slim\Factory\AppFactory; 
   
 require __DIR__ . '/../vendor/autoload.php'; 
   
+Dotenv::createImmutable(__DIR__ . '/..')->safeLoad(); 
+  
 $app = AppFactory::create(); 
-$app->addRoutingMiddleware(); 
+$app->addRoutingMiddleware();
+
+$app->add(new App\Middlewares\JsonBodyParser()); 
+$app->add(new App\Middlewares\Cors()); 
 $app->addErrorMiddleware(true, true, true); 
-  
-$app->get('/', function (Request $req, Response $res) { 
-    $res->getBody()->write('Hello, Slim!'); 
-    return $res; 
-}); 
-  
+(require __DIR__ . '/../src/routes.php')($app); 
 $app->run(); 

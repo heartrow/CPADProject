@@ -7,6 +7,7 @@
       </div>
 
       <form @submit.prevent="handleLogin" class="login-form">
+        <p v-if="error" class="alert error">{{ error }}</p>
         <div class="input-group">
           <label for="email">Email Address</label>
           <input type="email" id="email" v-model="email" placeholder="you@example.com" required />
@@ -25,7 +26,9 @@
           <a href="#" class="forgot-password">Forgot password?</a>
         </div>
 
-        <button type="submit" class="submit-btn">Log In</button>
+        <button type="submit" class="submit-btn" :disabled="busy" @click="submit">
+          {{ busy ? 'Logging in...' : 'Log In' }}
+        </button>
       </form>
 
       <div class="login-footer">
@@ -36,23 +39,33 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import router from '../src/router'
 
+  import { ref } from 'vue';
+  import { useRouter, useRoute, RouterLink } from 'vue-router';
+  import { useAuth } from '@/stores/auth';
 
-const email = ref('')
-const password = ref('')
-const remember = ref(false)
+  const auth = useAuth();
+  const router = useRouter();
+  const route  = useRoute();
 
-const handleLogin = () => {
-  console.log('Login attempt:', {
-    email: email.value,
-    password: password.value,
-    remember: remember.value,
-  })
+  const email    = ref('');
+  const password = ref('');
+  const error    = ref('');
+  const busy     = ref(false);
 
-  router.push('/dashboard')
-}
+  async function submit() {
+    error.value = '';
+    busy.value  = true;
+    try {
+      await auth.login(email.value, password.value);
+      router.push(route.query.redirect ?? '/dashboard');
+    } catch (e) {
+      error.value = e.response?.status === 401 ? 'Invalid email or password.' : (e.response?.data?.error || e.message);
+    } finally {
+      busy.value = false;
+    }
+  }
+
 </script>
 
 <style scoped>
@@ -198,5 +211,14 @@ const handleLogin = () => {
   .login-footer a:hover {
     color: whitesmoke;
     text-decoration: underline;
+  }
+
+  .alert.error {
+    background: #d87e7e; 
+    color: #910909; 
+    padding: 10px 14px; 
+    border-radius: 6px;
+    border: 2px solid #910909;
+    margin-bottom: 12px; 
   }
 </style>
