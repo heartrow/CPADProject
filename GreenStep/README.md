@@ -24,6 +24,7 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 ```sh
 cd GreenStep
 npm install
+composer install
 ```
 
 ### Compile and Hot-Reload for Development
