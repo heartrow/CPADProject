@@ -3,7 +3,6 @@ import DashboardView  from '../../views/DashboardView.vue'
 import LoginView from '../../views/LoginView.vue'
 import ActivityView from '../../views/ActivityView.vue'
 import ChallengesView from '../../views/ChallengesView.vue'
-import BadgesView from '../../views/BadgesView.vue'
 import ProfileView from '../../views/ProfileView.vue'
 
 const router = createRouter({
@@ -13,7 +12,6 @@ const router = createRouter({
     { path: '/dashboard', name: 'dashboard', component: DashboardView},
     { path: '/activity', name: 'activity', component: ActivityView},
     { path: '/challenges', name: 'challenges', component: ChallengesView},
-    { path: '/badges', name: 'badges', component: BadgesView},
     { path: '/profile', name: 'profile', component: ProfileView},
   ],
 })
