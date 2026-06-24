@@ -9,6 +9,11 @@
       <form @submit.prevent="submitLog" class="modal-body">
 
         <div class="form-group">
+          <label>Title</label>
+          <input type="string" required>
+        </div>
+
+        <div class="form-group">
           <label>Main Ingredient</label>
           <select v-model="selected" placeholder="Select main ingredient" @change="updateForm">
             <option value="" disabled>Select main ingredient</option>
@@ -40,27 +45,27 @@ import router from '@/router';
 
   const selected = ref(null);
   const weight = ref(Number());
-  const form = ref({ 
-    id: 0, 
-    category: 'meal', 
-    name: '', 
-    amount: 0, 
+  const form = ref({
+    id: 0,
+    category: 'meal',
+    name: '',
+    amount: 0,
   });
   const meals   = ref([]);
   const q       = ref('meal');
   const error   = ref('');
-  const ok      = ref('');  
+  const ok      = ref('');
   const loading = ref(false);
   const busy = ref(false);
 
   async function submitLog() {
-    error.value = ''; 
+    error.value = '';
     ok.value = '';
     busy.value = true;
 
     try {
       const payload = {
-        activity_type_id: Number(form.value.id), 
+        activity_type_id: Number(form.value.id),
         amount: Number(form.value.amount)
       };
 
@@ -69,7 +74,7 @@ import router from '@/router';
       ok.value = 'Activity logged successfully!';
 
       // Optional: Auto-wipe the quantity input so they can log another one
-      form.value.amount = ''; 
+      form.value.amount = '';
 
       // 3. Change 'dashboard' to whatever your main History/Ledger route is named
       router.push("/activity");
