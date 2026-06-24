@@ -10,12 +10,12 @@
 
         <div class="form-group">
           <label>Title</label>
-          <input type="string" required>
+          <input v-model='form.title' type="string" required>
         </div>
 
         <div class="form-group">
           <label>Main Ingredient</label>
-          <select v-model="selected" placeholder="Select main ingredient" @change="updateForm">
+          <select v-model="selectedOption" placeholder="Select main ingredient" @change="updateForm">
             <option value="" disabled>Select main ingredient</option>
             <option v-for="m in meals" :key="m.id" :value="m">{{ m.name }}</option>
           </select>
@@ -23,7 +23,7 @@
 
         <div class="form-group">
           <label>Estimated Weight (kg)</label>
-          <input type="number" v-model="weight" placeholder="e.g., 2.5" step="0.1" required @change="updateForm"/>
+          <input type="number" v-model="form.amount" placeholder="e.g., 2.5" step="0.1" required @change="updateForm"/>
         </div>
 
         <div class="modal-footer">
@@ -36,20 +36,19 @@
 </template>
 
 <script async setup>
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, defineEmits } from 'vue';
   import api from '../../api/client';
   import { useAuth } from '../../stores/auth';
-import router from '@/router';
+  import router from '@/router';
 
-  defineEmits(['close']);
+  const emit = defineEmits(['close'])
 
-  const selected = ref(null);
-  const weight = ref(Number());
-  const form = ref({
-    id: 0,
-    category: 'meal',
-    name: '',
-    amount: 0,
+  const selectedOption = ref(null);
+  const form = ref({ 
+    id: 0, 
+    category: 'meal', 
+    title: '',
+    amount: 0, 
   });
   const meals   = ref([]);
   const q       = ref('meal');
@@ -66,18 +65,21 @@ import router from '@/router';
     try {
       const payload = {
         activity_type_id: Number(form.value.id),
+        title: form.value.title,
         amount: Number(form.value.amount)
       };
+      console.log(payload)
 
       const { data } = await api.post('/api/activitylogs', payload);
 
       ok.value = 'Activity logged successfully!';
 
       // Optional: Auto-wipe the quantity input so they can log another one
-      form.value.amount = '';
+      form.value.id = 0;
+      form.value.amount = 0;
+      form.value.title = '';
 
-      // 3. Change 'dashboard' to whatever your main History/Ledger route is named
-      router.push("/activity");
+      emit('close');
 
     } catch (e) {
       const d = e.response?.data;
@@ -88,12 +90,10 @@ import router from '@/router';
   }
 
   async function updateForm() {
-    form.value.amount = weight.value;
+    if (!selectedOption)
+      return;
 
-    if (!selected.value)
-      console.log('No selected option');
-
-    form.value.id = selected.value.id;
+    form.value.id = selectedOption.value.id;
   }
 
   async function load() {

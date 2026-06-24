@@ -31,6 +31,3 @@ INSERT INTO activity_logs (user_id, activity_type_id, title, amount) VALUES
         '',
         ''
     );
-
-ALTER TABLE activity_logs 
-ADD COLUMN title VARCHAR(200) NOT NULL DEFAULT 'Untitled';

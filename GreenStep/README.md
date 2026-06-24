@@ -30,6 +30,7 @@ composer install
 ### Compile and Hot-Reload for Development
 
 ```sh
+php -S localhost:8000 -t public
 npm run dev
 ```
 

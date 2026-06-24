@@ -51,10 +51,6 @@ INSERT INTO activity_types (category, name, unit, co2_per_unit) VALUES
         1.4000
     );
 
-USE greenstep_db;
-ALTER TABLE activity_types 
-RENAME COLUMN kg_co2_per_unit TO co2_per_unit;
-
 INSERT INTO activity_types (category, name, unit, co2_per_unit) VALUES 
     (
         'transport',

@@ -44,8 +44,8 @@ final class LogRepository
 
     public function create(array $data): int 
     { 
-        $sql = 'INSERT INTO activity_logs (user_id, activity_type_id, amount) 
-                VALUES (:user_id, :activity_type_id, :amount)'; 
+        $sql = 'INSERT INTO activity_logs (user_id, activity_type_id, amount, title) 
+                VALUES (:user_id, :activity_type_id, :amount, :title)'; 
 
         $this->pdo->prepare($sql)->execute([ 
             ':user_id'          => (int)$data['user_id'],  
@@ -62,7 +62,7 @@ final class LogRepository
         $sets = [];  
         $args = [':id' => $id];
 
-        foreach (['activity_type_id', 'amount'] as $field) { 
+        foreach (['activity_type_id', 'amount', 'title'] as $field) { 
             if (array_key_exists($field, $data)) { 
                 $sets[] = "$field=:$field"; 
                 $args[":$field"] = ($field === 'amount') ? (float)$data[$field] : (int)$data[$field]; 

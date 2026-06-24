@@ -154,7 +154,10 @@
               <span class="log-icon">{{ categoryIcons[log.category] }}</span>
             </div>
             <div class="log-info">
-              <div class="log-title">{{ log.activity_name }}</div>
+              <div class="log-title">{{ log.title }}</div>
+              <div class="log-description">
+                {{ log.activity_name }} • {{ log.amount }} {{ log.unit }}
+              </div>
               <div class="log-time">{{ log.created_at }}</div>
             </div>
             <div class="log-co2">+{{ (log.amount * log.co2_per_unit).toFixed(2) }} kg</div>
