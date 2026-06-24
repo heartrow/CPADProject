@@ -48,6 +48,25 @@ import SideBar from '@/components/SideBar.vue'
           </div>
         </div>
       </div>
+
+      <div class="card tip-library">
+        <h2 class="card-title">Eco-Tip Library</h2>
+        <div class="tip-library-grid">
+          <div class="tip-item">
+            <div class="tip-icon">💡</div>
+            <p><strong>Cold Water Laundry:</strong> Wash clothes in cold water to save the energy used to heat it, keeping your garments looking fresh longer.</p>
+          </div>
+          <div class="tip-item">
+            <div class="tip-icon">🌱</div>
+            <p><strong>Plant-Based Meals:</strong> Swap one meat-based meal a week for a plant-based alternative to significantly lower your carbon footprint.</p>
+          </div>
+          <div class="tip-item">
+            <div class="tip-icon">🚴</div>
+            <p><strong>Active Transport:</strong> Try cycling or walking for short trips instead of driving to reduce emissions and improve health.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 </template>
@@ -151,6 +170,45 @@ import SideBar from '@/components/SideBar.vue'
   background: transparent;
 }
 
+/*tip library style */
+.tip-library {
+  margin-top: 2.5rem;
+}
+
+.tip-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.tip-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  background-color: var(--primary-light);
+  padding: 1.25rem;
+  border-radius: 10px;
+  border-left: 4px solid var(--primary);
+}
+
+.tip-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.tip-item p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-main);
+}
+
+.tip-item strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--primary);
+}
+
 @media (max-width: 768px) {
   .home-main {
     margin-left: 0;
@@ -182,6 +240,15 @@ import SideBar from '@/components/SideBar.vue'
     text-transform: uppercase;
     font-weight: 700;
     letter-spacing: 0.5px;
+  }
+
+  .tip-library {
+    margin-top: 1rem;
+  }
+
+  .tip-library-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 </style>
