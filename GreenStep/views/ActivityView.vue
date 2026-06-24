@@ -1,58 +1,80 @@
 <script async setup>
-import { ref } from 'vue'
-import TopBar from '@/components/TopBar.vue'
-import SideBar from '@/components/SideBar.vue'
-import TransportModal from '@/components/modals/TransportModal.vue'
-import MealModal from '@/components/modals/MealModal.vue'
-import EnergyModal from '@/components/modals/EnergyModal.vue'
-import RecycleModal from '@/components/modals/RecycleModal.vue'
-import CreatePresetModal from '@/components/modals/CreatePresetModal.vue'
+  import { ref, onMounted } from 'vue'
+  import api from '@/api/client';
+  import TopBar from '@/components/TopBar.vue'
+  import SideBar from '@/components/SideBar.vue'
+  import TransportModal from '@/components/modals/TransportModal.vue'
+  import MealModal from '@/components/modals/MealModal.vue'
+  import EnergyModal from '@/components/modals/EnergyModal.vue'
+  import RecycleModal from '@/components/modals/RecycleModal.vue'
+  import CreatePresetModal from '@/components/modals/CreatePresetModal.vue'
 
-const activeModal = ref(null)
+  const activeModal = ref(null)
 
-const presets = ref([
-  {
-    id: 1,
-    icon: '🚗',
-    title: 'Commute to Johor Campus',
-    desc: '2025 Proton Saga (Petrol) • 15km',
-    co2: 2.4,
-  },
-  {
-    id: 2,
-    icon: '⚡',
-    title: 'Coding Session',
-    desc: 'SFF Custom PC & Monitor • 4 Hours',
-    co2: 0.8,
-  },
-  {
-    id: 3,
-    icon: '🍔',
-    title: 'Standard Lunch',
-    desc: 'Mixed Diet (Chicken/Fish)',
-    co2: 1.2,
-  },
-])
+  const presets = ref([
+    {
+      id: 1,
+      icon: '🚗',
+      title: 'Commute to Johor Campus',
+      desc: '2025 Proton Saga (Petrol) • 15km',
+      co2: 2.4,
+    },
+    {
+      id: 2,
+      icon: '⚡',
+      title: 'Coding Session',
+      desc: 'SFF Custom PC & Monitor • 4 Hours',
+      co2: 0.8,
+    },
+    {
+      id: 3,
+      icon: '🍔',
+      title: 'Standard Lunch',
+      desc: 'Mixed Diet (Chicken/Fish)',
+      co2: 1.2,
+    },
+  ])
 
-// NEW: Dummy data for the activity log history
-const recentLogs = ref([
-  { id: 101, icon: '🚗', title: 'Commute to Johor Campus', time: 'Today, 8:30 AM', co2: 2.4 },
-  { id: 102, icon: '☕', title: 'Morning Coffee', time: 'Today, 9:15 AM', co2: 0.3 },
-  { id: 103, icon: '⚡', title: 'AC Usage (3 hours)', time: 'Yesterday, 10:00 PM', co2: 1.5 },
-  { id: 104, icon: '🍔', title: 'Standard Lunch', time: 'Yesterday, 1:00 PM', co2: 1.2 },
-])
+  // NEW: Dummy data for the activity log history
+  const categoryIcons = {
+    transport: '🚗',
+    meal: '🍽️',
+    energy: '⚡',
+    recycle: '♻️'
+  }
+  const recentLogs = ref([])
+  const error = ref('')
+  const loading = ref(false)
+  const q = ref('')
 
-const openModal = (type) => {
-  activeModal.value = type
-}
+  const openModal = (type) => {
+    activeModal.value = type
+  }
 
-const addNewTemplate = (newTemplateData) => {
-  presets.value.push(newTemplateData)
-}
+  const addNewTemplate = (newTemplateData) => {
+    presets.value.push(newTemplateData)
+  }
 
-const logPreset = (activityName) => {
-  console.log(`Logged preset: ${activityName}`)
-}
+  const logPreset = (activityName) => {
+    console.log(`Logged preset: ${activityName}`)
+  }
+
+  async function load() {
+    error.value = '';
+    loading.value = true;
+    try {
+      const { data } = await api.get('/api/activitylogs', { params: { q: q.value || undefined } });
+      recentLogs.value = data.data;
+      console.log(recentLogs.value);
+    } catch (e) {
+      error.value = e.response?.data?.error || e.message;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  onMounted(load);
+
 </script>
 
 <template>
@@ -129,13 +151,13 @@ const logPreset = (activityName) => {
         <div class="log-list">
           <div v-for="log in recentLogs" :key="log.id" class="log-item">
             <div class="log-icon-wrapper">
-              <span class="log-icon">{{ log.icon }}</span>
+              <span class="log-icon">{{ categoryIcons[log.category] }}</span>
             </div>
             <div class="log-info">
-              <div class="log-title">{{ log.title }}</div>
-              <div class="log-time">{{ log.time }}</div>
+              <div class="log-title">{{ log.activity_name }}</div>
+              <div class="log-time">{{ log.created_at }}</div>
             </div>
-            <div class="log-co2">+{{ log.co2 }} kg</div>
+            <div class="log-co2">+{{ (log.amount * log.co2_per_unit).toFixed(2) }} kg</div>
           </div>
         </div>
       </div>

@@ -9,7 +9,7 @@ CREATE TABLE activity_types (
     category            VARCHAR(50) NOT NULL,
     name                VARCHAR(150) NOT NULL,
     unit                VARCHAR(20) NOT NULL,
-    kg_co2_per_unit     DECIMAL(10, 4) NOT NULL,
+    co2_per_unit     DECIMAL(10, 4) NOT NULL,
 
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -18,9 +18,65 @@ CREATE TABLE activity_types (
 
 )   ENGINE=InnoDB; 
 
-INSERT INTO users (name, email, role, password_hash) VALUES 
-    (   'fikri',  
-        'fikri@green.com',  
-        'member',
-        '$2y$10$bo5HrN3QOAq0C6dPrXyIreOqYxoLuMysPLPuLN6WoS2jqrcG4WtVm'
+USE greenstep_db;
+INSERT INTO activity_types (category, name, unit, co2_per_unit) VALUES 
+    (   
+        'meal',  
+        'Beef / Lamb (Highest Impact)',  
+        'kg',
+        35.0000
+    ),
+    (   
+        'meal',  
+        'Pork / Poultry (Medium Impact)',  
+        'kg',
+        8.0000
+    ),
+    (   
+        'meal',  
+        'Fish / Seafood (Medium Impact)',  
+        'kg',
+        9.5000
+    ),
+    (   
+        'meal',  
+        'Dairy / Eggs / Vegetarian (Low Impact)',  
+        'kg',
+        4.2000
+    ),
+    (   
+        'meal',  
+        'Plant-based / Vegan (Lowest Impact)',  
+        'kg',
+        1.4000
+    );
+
+USE greenstep_db;
+ALTER TABLE activity_types 
+RENAME COLUMN kg_co2_per_unit TO co2_per_unit;
+
+INSERT INTO activity_types (category, name, unit, co2_per_unit) VALUES 
+    (
+        'transport',
+        'Private Car (Petrol)',
+        'km',
+        0.1920
+    ),
+    (
+        'transport',
+        'Electric Vehicle (EV)',
+        'km',
+        0.0530
+    ),
+    (
+        'transport',
+        'Public Bus',
+        'km',
+        0.0820
+    ),
+    (
+        'transport',
+        'Train / MRT',
+        'km',
+        0.0350
     );

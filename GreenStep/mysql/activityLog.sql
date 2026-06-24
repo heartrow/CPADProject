@@ -8,6 +8,7 @@ CREATE TABLE activity_logs (
     id                  INT AUTO_INCREMENT PRIMARY KEY, 
     user_id             INT NOT NULL, 
     activity_type_id    INT NOT NULL, 
+    title					VARCHAR(200) NOT NULL DEFAULT 'Untitled',
     amount              DECIMAL(10, 2) NOT NULL, 
     created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP, 
     updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -22,11 +23,14 @@ CREATE TABLE activity_logs (
     ON DELETE CASCADE 
     ON UPDATE CASCADE
 
-)   ENGINE=InnoDB; 
+)   ENGINE=INNODB; 
 
-INSERT INTO users (name, email, role, password_hash) VALUES 
-    (   'fikri',  
-        'fikri@green.com',  
-        'member',
-        '$2y$10$bo5HrN3QOAq0C6dPrXyIreOqYxoLuMysPLPuLN6WoS2jqrcG4WtVm'
+INSERT INTO activity_logs (user_id, activity_type_id, title, amount) VALUES 
+    (   '',  
+        '',  
+        '',
+        ''
     );
+
+ALTER TABLE activity_logs 
+ADD COLUMN title VARCHAR(200) NOT NULL DEFAULT 'Untitled';

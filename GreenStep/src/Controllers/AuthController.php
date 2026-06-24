@@ -6,10 +6,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request; 
   
 final class AuthController { 
-    public function __construct( 
-        private UserRepository $users,
-        private JwtService $jwt, 
-    ) {} 
+    public function __construct( private UserRepository $users, private JwtService $jwt) {} 
   
     public function register(Request $r, Response $s): Response { 
         $b = (array)$r->getParsedBody(); 

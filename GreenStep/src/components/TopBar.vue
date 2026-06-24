@@ -1,13 +1,12 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { useAuth } from '../stores/auth';
 
 const router = useRouter()
+const auth = useAuth()
 
 const handleLogout = () => {
-  // If you add authentication later, you would clear the user's token here
-  // localStorage.removeItem('user_token')
-
-  // Redirect back to the login page
+  auth.logout()
   router.push('/')
 }
 </script>

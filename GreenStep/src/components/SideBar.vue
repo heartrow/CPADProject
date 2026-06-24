@@ -1,5 +1,4 @@
 <script setup>
-import { ref } from 'vue'
 </script>
 
 <template>
@@ -101,7 +100,7 @@ import { ref } from 'vue'
   }
 
   .side-bar .router-link-active {
-    background-color: transparent;
+    background-color: var(--primary-light);
     color: var(--primary);
   }
 }

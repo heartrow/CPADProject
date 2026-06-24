@@ -6,69 +6,105 @@
         <button class="close-btn" @click="$emit('close')">✕</button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
+      <form @submit.prevent="submitLog" class="modal-body">
 
         <div class="form-group">
-          <label>Meal Time</label>
-          <select v-model="mealTime">
-            <option value="breakfast">Breakfast</option>
-            <option value="lunch">Lunch</option>
-            <option value="dinner">Dinner</option>
-            <option value="snack">Snack / Coffee</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Primary Ingredient (Protein/Base)</label>
-          <select v-model="primaryIngredient">
-            <option value="beef_lamb">Beef / Lamb (Highest Impact)</option>
-            <option value="pork_poultry">Pork / Poultry (Medium Impact)</option>
-            <option value="seafood">Fish / Seafood (Medium Impact)</option>
-            <option value="vegetarian">Dairy / Eggs / Vegetarian (Low Impact)</option>
-            <option value="vegan">Plant-based / Vegan (Lowest Impact)</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Food Source</label>
-          <select v-model="foodSource">
-            <option value="home">Home Cooked</option>
-            <option value="restaurant">Restaurant (Dine-in)</option>
-            <option value="takeout">Takeout / Delivery (Includes Packaging)</option>
+          <label>Main Ingredient</label>
+          <select v-model="selected" placeholder="Select main ingredient" @change="updateForm">
+            <option value="" disabled>Select main ingredient</option>
+            <option v-for="m in meals" :key="m.id" :value="m">{{ m.name }}</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Estimated Weight (kg)</label>
-          <input type="number" v-model="weight" placeholder="e.g., 2.5" step="0.1" required />
+          <input type="number" v-model="weight" placeholder="e.g., 2.5" step="0.1" required @change="updateForm"/>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="cancel-btn" @click="$emit('close')">Cancel</button>
-          <button type="submit" class="submit-btn">Log Meal</button>
+          <button type="submit" class="submit-btn" :disabled="busy">Log Meal</button>
         </div>
       </form>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
+<script async setup>
+  import { ref, onMounted } from 'vue';
+  import api from '../../api/client';
+  import { useAuth } from '../../stores/auth';
+import router from '@/router';
 
-defineEmits(['close']);
+  defineEmits(['close']);
 
-const mealTime = ref('lunch');
-const primaryIngredient = ref('pork_poultry');
-const foodSource = ref('home');
-
-const handleSubmit = () => {
-  console.log('Meal Logged:', {
-    time: mealTime.value,
-    ingredient: primaryIngredient.value,
-    source: foodSource.value
+  const selected = ref(null);
+  const weight = ref(Number());
+  const form = ref({ 
+    id: 0, 
+    category: 'meal', 
+    name: '', 
+    amount: 0, 
   });
+  const meals   = ref([]);
+  const q       = ref('meal');
+  const error   = ref('');
+  const ok      = ref('');  
+  const loading = ref(false);
+  const busy = ref(false);
 
-};
+  async function submitLog() {
+    error.value = ''; 
+    ok.value = '';
+    busy.value = true;
+
+    try {
+      const payload = {
+        activity_type_id: Number(form.value.id), 
+        amount: Number(form.value.amount)
+      };
+
+      const { data } = await api.post('/api/activitylogs', payload);
+
+      ok.value = 'Activity logged successfully!';
+
+      // Optional: Auto-wipe the quantity input so they can log another one
+      form.value.amount = ''; 
+
+      // 3. Change 'dashboard' to whatever your main History/Ledger route is named
+      router.push("/activity");
+
+    } catch (e) {
+      const d = e.response?.data;
+      error.value = d?.errors ? Object.values(d.errors).join(' • ') : (d?.error || e.message);
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  async function updateForm() {
+    form.value.amount = weight.value;
+
+    if (!selected.value)
+      console.log('No selected option');
+
+    form.value.id = selected.value.id;
+  }
+
+  async function load() {
+    error.value = '';
+    loading.value = true;
+    try {
+      const { data } = await api.get('/api/activitytypes', { params: { q: q.value || undefined } });
+      meals.value = data.data;
+    } catch (e) {
+      error.value = e.response?.data?.error || e.message;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  onMounted(load);
 </script>
 
 <style scoped>

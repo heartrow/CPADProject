@@ -214,11 +214,11 @@
   }
 
   .alert.error {
-    background: #d87e7e; 
-    color: #910909; 
+    background: rgba(255, 90, 90, 0.5); 
+    color: #ff0000; 
     padding: 10px 14px; 
     border-radius: 6px;
-    border: 2px solid #910909;
+    border: 1px solid #ff0000;
     margin-bottom: 12px; 
   }
 </style>
