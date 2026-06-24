@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import SideBar from '@/components/SideBar.vue'
+import LeaderboardModal from '@/components/modals/LeaderboardModal.vue'
 
 const challenges = ref([
   {
@@ -29,6 +30,27 @@ const challenges = ref([
 const calculatePercentage = (current, target) => {
   return Math.round((current / target) * 100);
 }
+const isModalOpen = ref(false)
+const selectedChallengeTitle = ref('')
+const selectedChallengeUnit = ref('')
+
+const handleChallengeAction = (challenge) => {
+  if (challenge.actionText === 'View Leaderboard') {
+    selectedChallengeTitle.value = challenge.title
+    selectedChallengeUnit.value = challenge.unit
+    isModalOpen.value = true
+  } else {
+    // Handle other actions (e.g., Leave Challenge)
+    console.log(`Action clicked for: ${challenge.title}`)
+  }
+}
+
+const closeModal = () => {
+  isModalOpen.value = false
+  selectedChallengeTitle.value = ''
+  selectedChallengeUnit.value = ''
+}
+
 </script>
 
 <template>
@@ -68,14 +90,22 @@ const calculatePercentage = (current, target) => {
             <button
               class="btn-action"
               :class="{ 'secondary': challenge.isSecondary }"
-            >
+              @click="handleChallengeAction(challenge)"
+              >
               {{ challenge.actionText }}
             </button>
-
           </div>
         </div>
       </div>
     </div>
+
+    <LeaderboardModal
+      :show="isModalOpen"
+      :challengeTitle="selectedChallengeTitle"
+      :unit="selectedChallengeUnit"
+      @close="closeModal"
+    />
+
   </main>
 </template>
 
