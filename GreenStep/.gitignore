@@ -40,3 +40,7 @@ __screenshots__/
 
 # php
 /vendor
+
+# environment variables
+.env
+.env.*
