@@ -35,7 +35,7 @@
 </template>
 
 <script async setup>
-  import { ref, onMounted, defineEmits } from 'vue';
+  import { ref, onMounted } from 'vue';
   import api from '../../api/client';
 
   const emit = defineEmits(['closeModal', 'logSubmitted'])

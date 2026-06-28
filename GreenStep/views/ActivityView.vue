@@ -355,7 +355,6 @@ onMounted(() => {
 .log-info {
   flex-grow: 1;
   min-width: 0;
-  max-width: 200px;
 }
 
 .log-title {
@@ -446,6 +445,12 @@ onMounted(() => {
     font-size: 0.95rem;
   }
 
+  .log-info {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 0;
+  }
+
   .log-title {
     font-size: 0.82rem;
   }
@@ -515,6 +520,7 @@ onMounted(() => {
   .activity-main {
     padding: 1.5rem;
     padding-bottom: 2rem;
+    margin-left: 0;
   }
 
   .card {
@@ -531,7 +537,7 @@ onMounted(() => {
 }
 
 /* Desktop */
-@media (min-width: 768px) {
+@media (min-width: 769px) {
   .activity-main {
     padding: 2rem;
     margin-left: 225px;

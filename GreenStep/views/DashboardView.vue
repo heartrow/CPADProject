@@ -63,7 +63,7 @@ const aggregatedDailyData = computed(() => {
     const rawDate = log.date || log.created_at || ''
     const dateKey = rawDate.split(' ')[0]
     if (dateKey) {
-      const carbonValue = parseFloat(log.co2 || log.amount || log.value || 0)
+      const carbonValue = parseFloat(log.co2_emission)
       recordMap[dateKey] = (recordMap[dateKey] || 0) + carbonValue
     }
   })
@@ -71,7 +71,7 @@ const aggregatedDailyData = computed(() => {
 })
 
 const todaysFootprint = computed(() => {
-  const todayKey = new Date().toLocaleDateString('sv')
+  const todayKey = new Date().toLocaleDateString()
   return (aggregatedDailyData.value[todayKey] || 0).toFixed(1)
 })
 
@@ -222,7 +222,7 @@ const canvasBackgroundColorPlugin = {
                   :key="day.date"
                   class="heatmap-day"
                   :class="day.statusClass"
-                  :title="`${day.date}: ${day.totalCO2.toFixed(1)} kg CO2`"
+                  :title="`${day.date}: ${day.totalCO2.toFixed(2)} kg CO2`"
                 ></div>
               </div>
               <div class="matrix-legend">

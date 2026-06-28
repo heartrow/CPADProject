@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Repositories\TemplateRepository;
+use App\Validation\Validator;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -30,10 +31,17 @@ final class TemplateController
         return $this->json($s, $template);
     }
 
-    public function create(Request $r, Response $s): Response
+     public function create(Request $r, Response $s): Response
     {
         $body = (array)$r->getParsedBody();
-        $errors = $this->validate($body, true);
+
+        $errors = (new Validator())
+            ->required('activity_type_id', 'title', 'amount')
+            ->field('activity_type_id', fn($v) => is_numeric($v) && (int)$v > 0,  'activity_type_id must be a positive integer')
+            ->field('title',            Validator::nonEmptyString(200),             'title must be 1-200 chars')
+            ->field('description',      Validator::nonEmptyString(300),             'description must be ≤ 300 chars')
+            ->field('amount',           fn($v) => is_numeric($v) && (float)$v > 0, 'amount must be a positive number')
+            ->validate($body);
 
         if ($errors) return $this->json($s, ['errors' => $errors], 400);
 
@@ -58,7 +66,13 @@ final class TemplateController
         }
 
         $body = (array)($req->getParsedBody() ?? []);
-        $errors = $this->validate($body, false);
+
+        $errors = (new Validator())
+            ->field('activity_type_id', fn($v) => is_numeric($v) && (int)$v > 0,  'activity_type_id must be a positive integer')
+            ->field('title',            Validator::nonEmptyString(200),             'title must be 1-200 chars')
+            ->field('description',      Validator::nonEmptyString(300),             'description must be ≤ 300 chars')
+            ->field('amount',           fn($v) => is_numeric($v) && (float)$v > 0, 'amount must be a positive number')
+            ->validate($body, true); 
 
         if (!empty($errors)) {
             return $this->json($res, ['errors' => $errors], 400);
@@ -86,39 +100,19 @@ final class TemplateController
         return $this->json($res, ['message' => 'Template deleted', 'data' => $existing]);
     }
 
-    private function validate(array $body, bool $requireAll): array
-    {
-        $errors = [];
-
-        $rules = [
-            'activity_type_id' => fn($v) => is_numeric($v) && (int)$v > 0,
-            'title'            => fn($v) => is_string($v) && trim($v) !== '',
-            'description'      => fn($v) => is_string($v),
-            'amount'           => fn($v) => is_numeric($v) && (float)$v > 0,
-        ];
-
-        foreach ($rules as $f => $check) {
-            if ($requireAll && $f !== 'description' && !array_key_exists($f, $body)) {
-                $errors[$f] = "$f is required";
-                continue;
-            }
-            if (array_key_exists($f, $body) && !$check($body[$f])) {
-                $errors[$f] = "$f is invalid";
-            }
-        }
-
-        return $errors;
-    }
-
     private function getAuthenticatedUserId(Request $r): int
     {
         $auth = (array)$r->getAttribute('auth', []);
         return (int)($auth['id'] ?? 1);
     }
 
-    private function json(Response $r, $data, int $code = 200): Response
-    {
-        $r->getBody()->write(json_encode($data, JSON_PRETTY_PRINT));
-        return $r->withHeader('Content-Type', 'application/json')->withStatus($code);
-    }
+    private function json(Response $r, $data, int $status = 200): Response { 
+        $r->getBody()->write(json_encode( 
+            $data, 
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE 
+            | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT 
+        )); 
+        return $r->withHeader('Content-Type','application/json; charset=utf-8') 
+                ->withStatus($status); 
+    } 
 }
