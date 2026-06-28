@@ -46,7 +46,7 @@ final class AuthController {
   
     public function me(Request $r, Response $s): Response { 
         $auth = (array)$r->getAttribute('auth', []); 
-        $u = $this->users->findById((int)($auth['sub'] ?? 0)); 
+        $u = $this->users->findById((int)($auth['id'] ?? 0)); 
         return $u ? $this->json($s, $u) 
                   : $this->json($s, ['error'=>'Not found'], 404); 
     } 

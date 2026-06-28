@@ -206,284 +206,369 @@ onMounted(() => {
 </template>
 
 <style scoped>
-  .activity-main {
-    padding: 1rem;
-    padding-bottom: 90px;
-    min-height: 100vh;
-    background-color: var(--bg-body);
-    margin-left: 0;
-    overflow-x: hidden;
-  }
+.activity-main {
+  padding: 1rem;
+  padding-bottom: 90px;
+  min-height: 100vh;
+  background-color: var(--bg-body);
+}
 
-  .activity-content-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    align-items: start;
-  }
+.activity-content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
 
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 0.85rem; 
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.activity-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-title {
+  font-size: 1.2rem;
+  margin-top: 0;
+  margin-bottom: 0.3rem;
+  color: var(--text-main);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.total-today {
+  text-align: left;
+}
+
+.total-value {
+  font-weight: 800;
+  color: var(--primary);
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.total-label {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.add-activity-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: var(--primary);
+  color: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.add-activity-btn:hover {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.section-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  letter-spacing: 1px;
+}
+
+.log-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.no-logs {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem 0;
+  font-size: 0.95rem;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+  gap: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.log-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.log-icon-wrapper {
+  background-color: var(--bg-body);
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.log-icon {
+  font-size: 1.1rem;
+}
+
+.log-info {
+  flex-grow: 1;
+  min-width: 0;
+  max-width: 200px;
+}
+
+.log-title {
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.15rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-description {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.log-co2 {
+  font-weight: 800;
+  color: #d9534f;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.log-actions {
+  display: flex;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.edit-btn {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.edit-btn:hover {
+  background-color: var(--primary);
+  color: var(--primary-light);
+}
+
+.delete-btn {
+  background-color: #fde8e8;
+  color: #d9534f;
+  border: 1px solid #d9534f;
+}
+
+.delete-btn:hover {
+  background-color: #d9534f;
+  color: #fff;
+}
+
+/* Small phones < 480px */
+@media (max-width: 479px) {
   .card {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 0.85rem 0.75rem;
+    border-radius: 10px;
   }
 
-  .activity-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1.5rem;
-    gap: 1rem;
+  .log-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 8px;
+  }
+
+  .log-icon {
+    font-size: 0.95rem;
+  }
+
+  .log-title {
+    font-size: 0.82rem;
+  }
+
+  .log-description {
+    font-size: 0.7rem;
+  }
+
+  .log-time {
+    font-size: 0.65rem;
+  }
+
+  .log-co2 {
+    font-size: 0.75rem;
+  }
+
+  .action-btn {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .log-item {
+    gap: 0.3rem;
+  }
+
+  .log-actions {
+    gap: 0.15rem;
   }
 
   .card-title {
-    font-size: 1.2rem;
-    margin-top: 0;
-    margin-bottom: 0.3rem;
-    color: var(--text-main);
+    font-size: 1rem;
   }
 
-  .subtitle {
-    color: var(--text-muted);
-    margin: 0;
-    font-size: 0.85rem;
+  .total-value {
+    font-size: 1rem;
+  }
+
+  .total-label {
+    font-size: 0.65rem;
+  }
+
+  .add-activity-btn {
+    padding: 0.4rem 0.7rem;
+    font-size: 1rem;
+  }
+}
+
+/* Tablet */
+@media (min-width: 480px) {
+  .activity-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
   }
 
   .header-right {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-shrink: 0;
+    width: auto;
+    justify-content: flex-end;
   }
 
   .total-today {
     text-align: right;
   }
+}
+
+@media (min-width: 640px) {
+  .activity-main {
+    padding: 1.5rem;
+    padding-bottom: 2rem;
+  }
+
+  .card {
+    padding: 1.75rem;
+  }
+
+  .card-title {
+    font-size: 1.35rem;
+  }
 
   .total-value {
-    font-weight: 800;
-    color: var(--primary);
-    font-size: 1.2rem;
+    font-size: 1.4rem;
+  }
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+  .activity-main {
+    padding: 2rem;
+    margin-left: 225px;
   }
 
-  .total-label {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
+  .card {
+    padding: 2.5rem;
   }
 
-  .add-activity-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    background-color: var(--primary);
-    color: var(--primary-light);
-    border: 2px solid var(--primary);
-    border-radius: 8px;
-    padding: 0.5rem 0.9rem;
-    font-size: 1.3rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+  .card-title {
+    font-size: 1.5rem;
   }
 
-  .add-activity-btn:hover {
-    background-color: var(--primary-light);
-    color: var(--primary);
-  }
-
-  .section-label {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 0.75rem;
-    letter-spacing: 1px;
-  }
-
-  /* Log List */
-  .log-list {
-    display: flex;
-    flex-direction: column;
-    max-height: 60vh;
-    overflow-y: auto;
-  }
-
-  .no-logs {
-    text-align: center;
-    color: var(--text-muted);
-    padding: 2rem 0;
-    font-size: 0.95rem;
-  }
-
-  .log-item {
-    display: flex;
-    align-items: center;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--border);
-    gap: 0.75rem;
-    min-width: 0; /* 👈 add this */
-    overflow: hidden; /* 👈 add this */
-  }
-
-  .log-item:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
+  .total-value {
+    font-size: 1.6rem;
   }
 
   .log-icon-wrapper {
-    background-color: var(--bg-body);
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--border);
+    width: 45px;
+    height: 45px;
+    min-width: 45px;
   }
 
   .log-icon {
-    font-size: 1.2rem;
-  }
-
-  .log-info {
-    flex-grow: 1;
-    min-width: 0; /* prevents text overflow */
+    font-size: 1.4rem;
   }
 
   .log-title {
-    font-weight: 700;
-    color: var(--text-main);
-    margin-bottom: 0.15rem;
-    font-size: 0.95rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .log-description {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .log-time {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 0.15rem;
+    font-size: 1rem;
   }
 
   .log-co2 {
-    font-weight: 800;
-    color: #d9534f;
-    font-size: 0.95rem;
-    white-space: nowrap;
-    flex-shrink: 0;
-    min-width: 0; /* 👈 add this */
+    font-size: 1.1rem;
   }
 
-  .log-actions {
-    display: flex;
-    gap: 0.4rem;
-    flex-shrink: 0;
-    min-width: 0; /* 👈 add this */
+  .log-list {
+    max-height: 70vh;
   }
-
-  .action-btn {
-    border: none;
-    border-radius: 6px;
-    padding: 0.35rem 0.6rem;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-
-  .edit-btn {
-    background-color: var(--primary);
-    color: var(--primary);
-    border: 1px solid var(--primary);
-  }
-
-  .edit-btn:hover {
-    background-color: var(--primary-light);
-  }
-
-  .delete-btn {
-    background-color: #d9534f;
-    color: #d9534f;
-    border: 1px solid #d9534f;
-  }
-
-  .delete-btn:hover {
-    background-color: #fde8e8;
-  }
-
-  /* Tablet */
-  @media (min-width: 640px) {
-    .activity-main {
-      padding: 1.5rem;
-      padding-bottom: 2rem;
-    }
-
-    .card {
-      padding: 1.75rem;
-    }
-
-    .card-title {
-      font-size: 1.35rem;
-    }
-
-    .total-value {
-      font-size: 1.4rem;
-    }
-  }
-
-  /* Desktop */
-  @media (min-width: 768px) {
-    .activity-main {
-      padding: 2rem;
-      margin-left: 225px;
-    }
-
-    .card {
-      padding: 2.5rem;
-    }
-
-    .card-title {
-      font-size: 1.5rem;
-    }
-
-    .total-value {
-      font-size: 1.6rem;
-    }
-
-    .log-icon-wrapper {
-      width: 45px;
-      height: 45px;
-      min-width: 45px;
-    }
-
-    .log-icon {
-      font-size: 1.4rem;
-    }
-
-    .log-title {
-      font-size: 1rem;
-    }
-
-    .log-co2 {
-      font-size: 1.1rem;
-    }
-
-    .log-list {
-      max-height: 70vh;
-    }
-  }
+}
 </style>

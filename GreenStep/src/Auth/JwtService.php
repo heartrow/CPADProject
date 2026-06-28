@@ -17,7 +17,7 @@ final class JwtService {
     public function issue(int $userId, array $extra = []): string { 
         $now = time(); 
         $payload = array_merge([ 
-            'iss' => $this->issuer, 'sub' => $userId, 
+            'iss' => $this->issuer, 'id' => $userId, 
             'iat' => $now, 'exp' => $now + $this->ttl, 
         ], $extra); 
         return JWT::encode($payload, $this->secret, $this->algo); 
