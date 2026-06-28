@@ -65,7 +65,11 @@ final class LogRepository
         foreach (['activity_type_id', 'amount', 'title'] as $field) { 
             if (array_key_exists($field, $data)) { 
                 $sets[] = "$field=:$field"; 
-                $args[":$field"] = ($field === 'amount') ? (float)$data[$field] : (int)$data[$field]; 
+                $args[":$field"] = match($field) {
+                    'amount' => (float)$data[$field],
+                    'activity_type_id' => (int)$data[$field],
+                    'title' => (string)$data[$field],  // 👈 keep it as string
+                };
             } 
         } 
 

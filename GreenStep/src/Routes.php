@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use App\Auth\JwtService;
 use App\Controllers\AuthController;
+use App\Controllers\TemplateController;
 use App\Controllers\TypeController;
 use App\Controllers\LogController;
 use App\Database;
@@ -10,6 +11,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Repositories\TypeRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\LogRepository;
+use App\Repositories\TemplateRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
@@ -23,8 +25,8 @@ return function (App $app): void {
     $authCtrl = new AuthController(new UserRepository($pdo), $jwt);
     $typeCtrl = new TypeController(new TypeRepository($pdo));
     $logCtrl = new LogController(new LogRepository($pdo));
+    $templateCtrl = new TemplateController(new TemplateRepository($pdo));
     
-
     // Public — no token required.
     $app->get('/', function (Request $r, Response $s) {
         $s->getBody()->write(json_encode([
@@ -72,6 +74,15 @@ return function (App $app): void {
         $g->post    ('',        [$typeCtrl, 'create']);
         $g->put     ('/{id}',   [$typeCtrl, 'update']);
         $g->delete  ('/{id}',   [$typeCtrl, 'delete']);   // controller also enforces role=admin
+    })->add($auth);
+
+     // -- Templates routes -------------------------------------------------
+    $app->group('/api/usertemplates', function ($g) use ($templateCtrl) {
+        $g->get     ('',        [$templateCtrl, 'index']);
+        $g->get     ('/{id}',   [$templateCtrl, 'show']);
+        $g->post    ('',        [$templateCtrl, 'create']);
+        $g->put     ('/{id}',   [$templateCtrl, 'update']);
+        $g->delete  ('/{id}',   [$templateCtrl, 'delete']);   // controller also enforces role=admin
     })->add($auth);
 
     // /auth/me requires a valid JWT.

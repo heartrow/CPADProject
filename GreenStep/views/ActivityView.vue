@@ -1,5 +1,5 @@
 <script async setup>
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, computed } from 'vue'
   import api from '@/api/client';
   import TopBar from '@/components/TopBar.vue'
   import SideBar from '@/components/SideBar.vue'
@@ -8,55 +8,40 @@
   import EnergyModal from '@/components/modals/EnergyModal.vue'
   import RecycleModal from '@/components/modals/RecycleModal.vue'
   import CreatePresetModal from '@/components/modals/CreatePresetModal.vue'
+  import EventLoggerModal from '@/components/modals/EventLoggerModal.vue';
 
   const activeModal = ref(null)
-
-  const presets = ref([
-    {
-      id: 1,
-      icon: '🚗',
-      title: 'Commute to Johor Campus',
-      desc: '2025 Proton Saga (Petrol) • 15km',
-      co2: 2.4,
-    },
-    {
-      id: 2,
-      icon: '⚡',
-      title: 'Coding Session',
-      desc: 'SFF Custom PC & Monitor • 4 Hours',
-      co2: 0.8,
-    },
-    {
-      id: 3,
-      icon: '🍔',
-      title: 'Standard Lunch',
-      desc: 'Mixed Diet (Chicken/Fish)',
-      co2: 1.2,
-    },
-  ])
-
-  // NEW: Dummy data for the activity log history
   const categoryIcons = {
     transport: '🚗',
     meal: '🍽️',
     energy: '⚡',
     recycle: '♻️'
   }
+  const activityTypes = ref([]);
+  const mealTypes     = computed(() => activityTypes.value.filter(t => t.category === 'meal'));
+  const transportTypes = computed(() => activityTypes.value.filter(t => t.category === 'transport'));
+  const energyTypes   = computed(() => activityTypes.value.filter(t => t.category === 'energy'));
+  const recycleTypes  = computed(() => activityTypes.value.filter(t => t.category === 'recycle'));
+  const selectedLog = ref(null)
+
   const recentLogs = ref([])
   const error = ref('')
   const loading = ref(false)
   const q = ref('')
 
-  const openModal = (type) => {
-    activeModal.value = type
+  async function deleteLog(id) {
+    if (!confirm('Delete this log?')) return;
+    try {
+      await api.delete(`/api/activitylogs/${id}`);
+      recentLogs.value = recentLogs.value.filter(log => log.id !== id);
+    } catch (e) {
+      error.value = e.response?.data?.error || e.message;
+    }
   }
 
-  const addNewTemplate = (newTemplateData) => {
-    presets.value.push(newTemplateData)
-  }
-
-  const logPreset = (activityName) => {
-    console.log(`Logged preset: ${activityName}`)
+  function editLog(log) {
+    selectedLog.value = log;
+    activeModal.value = log.category;
   }
 
   async function load() {
@@ -65,7 +50,6 @@
     try {
       const { data } = await api.get('/api/activitylogs', { params: { q: q.value || undefined } });
       recentLogs.value = data.data;
-      console.log(recentLogs.value);
     } catch (e) {
       error.value = e.response?.data?.error || e.message;
     } finally {
@@ -73,8 +57,15 @@
     }
   }
 
-  onMounted(load);
+  async function loadActivityTypes() {
+    const { data } = await api.get('/api/activitytypes');
+    activityTypes.value = data.data;
+  }
 
+  onMounted(() => {
+    load();
+    loadActivityTypes();
+  });
 </script>
 
 <template>
@@ -83,73 +74,29 @@
 
   <main class="activity-main">
     <div class="activity-content-grid">
-      <div class="card form-column">
-        <div class="activity-header">
-          <div>
-            <h2 class="card-title">📝 Event-Based Logger</h2>
-            <p class="subtitle">Log activities as they happen for higher accuracy.</p>
-          </div>
-          <div class="total-today">
-            <div class="total-value">6.1 kg CO₂</div>
-            <div class="total-label">Total Today</div>
-          </div>
-        </div>
-
-        <h3 class="section-label">1. Record New Event</h3>
-        <div class="quick-add-grid">
-          <button class="quick-add-btn" @click="openModal('transport')">
-            <span class="icon">🚗</span>
-            <span class="label">Transport</span>
-          </button>
-
-          <button class="quick-add-btn" @click="openModal('meal')">
-            <span class="icon">🍔</span>
-            <span class="label">Meal</span>
-          </button>
-
-          <button class="quick-add-btn" @click="openModal('energy')">
-            <span class="icon">⚡</span>
-            <span class="label">Energy</span>
-          </button>
-
-          <button class="quick-add-btn" @click="openModal('recycle')">
-            <span class="icon">♻️</span>
-            <span class="label">Recycle</span>
-          </button>
-        </div>
-
-        <h3 class="section-label">2. One-Tap Templates</h3>
-        <div class="presets-list">
-          <button
-            v-for="preset in presets"
-            :key="preset.id"
-            class="preset-btn"
-            @click="logPreset(preset.title)"
-          >
-            <span class="preset-icon">{{ preset.icon }}</span>
-            <div class="preset-details">
-              <div class="preset-title">{{ preset.title }}</div>
-              <div class="preset-desc">{{ preset.desc }} • Est {{ preset.co2 }} kg CO₂</div>
-            </div>
-            <span class="log-badge">+ LOG</span>
-          </button>
-
-          <button class="add-new-preset-btn" @click="openModal('createPreset')">
-            <span class="icon">➕</span> Create Custom Template
-          </button>
-        </div>
-      </div>
-
-      <div class="card log-column">
+       <div class="card log-column">
         <div class="activity-header">
           <div>
             <h2 class="card-title">🕒 Recent Activity</h2>
             <p class="subtitle">Your latest logged entries.</p>
           </div>
+         <div class="header-right">
+           <div class="total-today">
+              <div class="total-value">6.1 kg CO₂</div>
+              <div class="total-label">Total Today</div>
+            </div>
+            <button class="add-activity-btn" @click="activeModal = 'eventLogger'">
+              <span> + </span>
+            </button>
+         </div>
         </div>
 
         <div class="log-list">
-          <div v-for="log in recentLogs" :key="log.id" class="log-item">
+          <div v-if="recentLogs.length === 0" class="no-logs">
+            No recent logs yet.
+          </div>
+
+          <div v-else v-for="log in recentLogs" :key="log.id" class="log-item">
             <div class="log-icon-wrapper">
               <span class="log-icon">{{ categoryIcons[log.category] }}</span>
             </div>
@@ -161,289 +108,333 @@
               <div class="log-time">{{ log.created_at }}</div>
             </div>
             <div class="log-co2">+{{ (log.amount * log.co2_per_unit).toFixed(2) }} kg</div>
+            <div class="log-actions">
+              <button class="action-btn edit-btn" @click="editLog(log)">✏️</button>
+              <button class="action-btn delete-btn" @click="deleteLog(log.id)">🗑️</button>
+            </div>
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- Modals -->
-    <TransportModal v-if="activeModal === 'transport'" @close="activeModal = null" />
-    <MealModal v-if="activeModal === 'meal'" @close="activeModal = null" />
-    <EnergyModal v-if="activeModal === 'energy'" @close="activeModal = null" />
-    <RecycleModal v-if="activeModal === 'recycle'" @close="activeModal = null" />
-    <CreatePresetModal v-if="activeModal === 'createPreset'" @close="activeModal = null" @submit="addNewTemplate" />
+    <EventLoggerModal 
+      v-if="activeModal === 'eventLogger'" 
+      @closeModal="activeModal = null"
+      @openModal="activeModal = $event"
+    />
+    <CreatePresetModal
+      v-if="activeModal === 'createPreset'"
+      @closeModal="activeModal = null"
+    />
+    <TransportModal 
+      v-if="activeModal === 'transport'" 
+      :editLog="selectedLog"
+      :options="transportTypes"
+      @closeModal="activeModal = null; selectedLog = null" 
+      @logSubmitted="load"
+    />
+    <MealModal 
+      v-if="activeModal === 'meal'" 
+      :editLog="selectedLog"
+      :options="mealTypes"
+      @closeModal="activeModal = null; selectedLog = null" 
+      @logSubmitted="load"
+    />
+    <EnergyModal 
+      v-if="activeModal === 'energy'" 
+      :editLog="selectedLog"
+      @closeModal="activeModal = null; selectedLog = null" 
+      @logSubmitted="load"
+    />
+    <RecycleModal 
+      v-if="activeModal === 'recycle'" 
+      :editLog="selectedLog"
+      @closeModal="activeModal = null; selectedLog = null" 
+      @logSubmitted="load"
+    />
   </main>
 </template>
 
 <style scoped>
-.activity-main {
-  padding: 2rem;
-  min-height: 100vh;
-  background-color: var(--bg-body);
-  margin-left: 225px;
-}
-
-.activity-content-grid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 2rem;
-  align-items: start;
-}
-
-.card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 2.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.activity-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-}
-
-.card-title {
-  font-size: 1.5rem;
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  color: var(--text-main);
-}
-
-.subtitle {
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.total-today {
-  text-align: right;
-}
-
-.total-value {
-  font-weight: 800;
-  color: var(--primary);
-  font-size: 1.6rem;
-}
-
-.total-label {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.section-label {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 1rem;
-  letter-spacing: 1px;
-}
-
-.quick-add-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  margin-bottom: 2.5rem;
-}
-
-.quick-add-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--primary-light);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.5rem 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.quick-add-btn:hover {
-  background-color: #e5e5c8;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.quick-add-btn .icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-.quick-add-btn .label {
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.presets-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.preset-btn {
-  display: flex;
-  align-items: center;
-  background-color: transparent;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem;
-  width: 100%;
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s;
-}
-
-.preset-btn:hover {
-  background-color: rgba(245, 245, 220, 0.4);
-  border-color: var(--primary);
-}
-
-.preset-icon {
-  font-size: 1.8rem;
-  margin-right: 1.25rem;
-}
-
-.preset-details {
-  text-align: left;
-  flex-grow: 1;
-}
-
-.preset-title {
-  font-weight: 700;
-  color: var(--text-main);
-  font-size: 1.05rem;
-}
-
-.preset-desc {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin-top: 0.2rem;
-}
-
-.log-badge {
-  color: var(--primary);
-  font-weight: 700;
-  padding: 0.5rem 1rem;
-  background: var(--primary-light);
-  border-radius: 6px;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-}
-
-.preset-btn:hover .log-badge {
-  background-color: var(--primary);
-  color: var(--primary-light);
-}
-
-.add-new-preset-btn {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: transparent;
-  border: 2px dashed var(--border);
-  border-radius: 10px;
-  padding: 1rem;
-  width: 100%;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-weight: 600;
-  transition: all 0.2s;
-  margin-top: 0.5rem;
-}
-
-.add-new-preset-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background-color: var(--primary-light);
-}
-
-.log-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.log-item {
-  display: flex;
-  align-items: center;
-  padding: 1.2rem 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.log-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.log-icon-wrapper {
-  background-color: var(--bg-body);
-  width: 45px;
-  height: 45px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 1rem;
-  border: 1px solid var(--border);
-}
-
-.log-icon {
-  font-size: 1.4rem;
-}
-
-.log-info {
-  flex-grow: 1;
-}
-
-.log-title {
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 0.2rem;
-}
-
-.log-time {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.log-co2 {
-  font-weight: 800;
-  color: #d9534f;
-  font-size: 1.1rem;
-}
-
-@media (max-width: 1200px) {
-  .activity-content-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
   .activity-main {
     padding: 1rem;
     padding-bottom: 90px;
+    min-height: 100vh;
+    background-color: var(--bg-body);
     margin-left: 0;
+    overflow-x: hidden;
   }
 
-  .quick-add-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .activity-content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
   .activity-header {
-    flex-direction: column;
+    display: flex;
+    justify-content: space-between;
     align-items: flex-start;
+    margin-bottom: 1.5rem;
     gap: 1rem;
   }
 
-  .total-today {
-    text-align: left;
+  .card-title {
+    font-size: 1.2rem;
+    margin-top: 0;
+    margin-bottom: 0.3rem;
+    color: var(--text-main);
   }
-}
+
+  .subtitle {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 0.85rem;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .total-today {
+    text-align: right;
+  }
+
+  .total-value {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 1.2rem;
+  }
+
+  .total-label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .add-activity-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: var(--primary);
+    color: var(--primary-light);
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .add-activity-btn:hover {
+    background-color: var(--primary-light);
+    color: var(--primary);
+  }
+
+  .section-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    letter-spacing: 1px;
+  }
+
+  /* Log List */
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .no-logs {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem 0;
+    font-size: 0.95rem;
+  }
+
+  .log-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    gap: 0.75rem;
+    min-width: 0; /* 👈 add this */
+    overflow: hidden; /* 👈 add this */
+  }
+
+  .log-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .log-icon-wrapper {
+    background-color: var(--bg-body);
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+  }
+
+  .log-icon {
+    font-size: 1.2rem;
+  }
+
+  .log-info {
+    flex-grow: 1;
+    min-width: 0; /* prevents text overflow */
+  }
+
+  .log-title {
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 0.15rem;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .log-description {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .log-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+  }
+
+  .log-co2 {
+    font-weight: 800;
+    color: #d9534f;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 0; /* 👈 add this */
+  }
+
+  .log-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    min-width: 0; /* 👈 add this */
+  }
+
+  .action-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .edit-btn {
+    background-color: var(--primary);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+  }
+
+  .edit-btn:hover {
+    background-color: var(--primary-light);
+  }
+
+  .delete-btn {
+    background-color: #d9534f;
+    color: #d9534f;
+    border: 1px solid #d9534f;
+  }
+
+  .delete-btn:hover {
+    background-color: #fde8e8;
+  }
+
+  /* Tablet */
+  @media (min-width: 640px) {
+    .activity-main {
+      padding: 1.5rem;
+      padding-bottom: 2rem;
+    }
+
+    .card {
+      padding: 1.75rem;
+    }
+
+    .card-title {
+      font-size: 1.35rem;
+    }
+
+    .total-value {
+      font-size: 1.4rem;
+    }
+  }
+
+  /* Desktop */
+  @media (min-width: 768px) {
+    .activity-main {
+      padding: 2rem;
+      margin-left: 225px;
+    }
+
+    .card {
+      padding: 2.5rem;
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+    }
+
+    .total-value {
+      font-size: 1.6rem;
+    }
+
+    .log-icon-wrapper {
+      width: 45px;
+      height: 45px;
+      min-width: 45px;
+    }
+
+    .log-icon {
+      font-size: 1.4rem;
+    }
+
+    .log-title {
+      font-size: 1rem;
+    }
+
+    .log-co2 {
+      font-size: 1.1rem;
+    }
+
+    .log-list {
+      max-height: 70vh;
+    }
+  }
 </style>
