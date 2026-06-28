@@ -13,7 +13,7 @@ const badges    = ref([])
 const isLoading = ref(false)
 const errorMsg  = ref(null)
 
-// ── Edit Profile State ────────────────────────────────────────
+// ── Edit Profile State ───────────────────────────────────────
 const isEditing = ref(false)
 const isSaving = ref(false)
 const profileError = ref(null)

@@ -50,6 +50,109 @@ final class BadgeController
         ]);
     }
 
+    /**
+     * POST /api/badges — admin only
+     * Creates a new badge definition from the request body.
+     * Body: { name, criteria_type, threshold?, activity_type_id?, days?,
+     *          activity_type_ids?, image_url? }
+     */
+    public function store(Request $r, Response $s): Response
+    {
+        $auth = (array) $r->getAttribute('auth', []);
+        if (($auth['role'] ?? 'member') !== 'admin') {
+            return $this->json($s, ['error' => 'Admins only'], 403);
+        }
+
+        $body = (array) $r->getParsedBody();
+
+        // Validate required fields
+        $name          = trim($body['name'] ?? '');
+        $criteriaType  = trim($body['criteria_type'] ?? '');
+        $imageUrl      = trim($body['image_url'] ?? 'https://greenstep.app/badges/default.png');
+
+        $errors = [];
+        if (mb_strlen($name) < 2)        $errors['name']          = 'min 2 chars';
+        if ($criteriaType === '')         $errors['criteria_type'] = 'required';
+
+        $allowedTypes = ['total_logs', 'total_co2_saved_kg', 'activity_category_streak', 'activity_category_logs'];
+        if ($criteriaType !== '' && !in_array($criteriaType, $allowedTypes, true)) {
+            $errors['criteria_type'] = 'invalid type';
+        }
+
+        if ($errors) {
+            return $this->json($s, ['errors' => $errors], 400);
+        }
+
+        // Build criteria_json from the selected type
+        $criteria = ['type' => $criteriaType];
+
+        switch ($criteriaType) {
+            case 'total_logs':
+                $criteria['threshold'] = max(1, (int) ($body['threshold'] ?? 1));
+                break;
+
+            case 'total_co2_saved_kg':
+                $threshold = (float) ($body['threshold'] ?? 0);
+                if ($threshold <= 0) {
+                    return $this->json($s, ['errors' => ['threshold' => 'must be > 0']], 400);
+                }
+                $criteria['threshold'] = $threshold;
+                break;
+
+            case 'activity_category_streak':
+                $typeId = (int) ($body['activity_type_id'] ?? 0);
+                $days   = (int) ($body['days'] ?? 7);
+                if ($typeId <= 0) {
+                    return $this->json($s, ['errors' => ['activity_type_id' => 'required for streak badge']], 400);
+                }
+                $criteria['activity_type_id'] = $typeId;
+                $criteria['days']             = max(1, $days);
+                $criteria['category']         = trim($body['category'] ?? 'activity');
+                break;
+
+            case 'activity_category_logs':
+                $typeIds   = array_map('intval', (array) ($body['activity_type_ids'] ?? []));
+                $threshold = (int) ($body['threshold'] ?? 1);
+                if (empty($typeIds)) {
+                    return $this->json($s, ['errors' => ['activity_type_ids' => 'at least one required']], 400);
+                }
+                $criteria['activity_type_ids'] = $typeIds;
+                $criteria['threshold']         = max(1, $threshold);
+                break;
+        }
+
+        $criteriaJson = json_encode($criteria, JSON_UNESCAPED_UNICODE);
+        $newId        = $this->badges->create($name, $criteriaJson, $imageUrl);
+        $newBadge     = $this->badges->find($newId);
+
+        return $this->json($s, [
+            'message' => 'Badge created',
+            'data'    => $newBadge,
+        ], 201);
+    }
+
+    /**
+     * DELETE /api/badges/{id} — admin only
+     * Permanently removes a badge definition and all earned records for it.
+     */
+    public function destroy(Request $r, Response $s, array $args): Response
+    {
+        $auth = (array) $r->getAttribute('auth', []);
+        if (($auth['role'] ?? 'member') !== 'admin') {
+            return $this->json($s, ['error' => 'Admins only'], 403);
+        }
+
+        $id    = (int) ($args['id'] ?? 0);
+        $badge = $this->badges->find($id);
+
+        if (!$badge) {
+            return $this->json($s, ['error' => "Badge {$id} not found"], 404);
+        }
+
+        $this->badges->delete($id);
+        return $this->json($s, ['message' => 'Badge deleted', 'data' => $badge]);
+    }
+
     // ── Public helper — called directly from LogController ────────────────────
 
     /**

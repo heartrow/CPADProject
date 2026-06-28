@@ -1,4 +1,7 @@
 <script setup>
+import { useAuth } from '@/stores/auth.js'
+
+const auth = useAuth()
 </script>
 
 <template>
@@ -21,6 +24,11 @@
         <router-link class="button" to="/profile">
             <img class="icon" src='../assets/profile-icon-black.png'/>
             <span>Profile</span>
+        </router-link>
+
+        <router-link class="button" to="/admin" v-if="auth.user?.role === 'admin'">
+            <img class="icon" src='../assets/user-check.png'/>
+            <span>Admin Tools</span>
         </router-link>
     </aside>
 </template>

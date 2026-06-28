@@ -82,8 +82,10 @@ return function (App $app): void {
 
     // -- Badge routes -------------------------------------------------
     $app->group('/api/badges', function ($g) use ($badgeCtrl) {
-        $g->get  ('',        [$badgeCtrl, 'index']);   // GET  /api/badges
-        $g->post ('/check',  [$badgeCtrl, 'check']);   // POST /api/badges/check
+        $g->get    ('',        [$badgeCtrl, 'index']);    // GET  /api/badges
+        $g->post   ('/check',  [$badgeCtrl, 'check']);    // POST /api/badges/check
+        $g->post   ('',        [$badgeCtrl, 'store']);    // POST /api/badges        (admin only)
+        $g->delete ('/{id}',   [$badgeCtrl, 'destroy']); // DELETE /api/badges/{id} (admin only)
     })->add($auth);
 
     // /auth/me requires a valid JWT.

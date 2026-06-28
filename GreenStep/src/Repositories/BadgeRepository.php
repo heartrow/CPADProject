@@ -116,4 +116,34 @@ final class BadgeRepository
         }
         return $streak >= $requiredDays;
     }
+
+    // ── Admin CRUD ────────────────────────────────────────────────────────────
+
+    /**
+     * Create a new badge definition (admin only).
+     * Returns the new badge's auto-incremented ID.
+     */
+    public function create(string $name, string $criteriaJson, string $imageUrl): int
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO badges (name, criteria_json, image_url)
+             VALUES (:name, :criteria_json, :image_url)'
+        );
+        $stmt->execute([
+            ':name'          => trim($name),
+            ':criteria_json' => $criteriaJson,
+            ':image_url'     => trim($imageUrl),
+        ]);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    /**
+     * Delete a badge and all associated user_badges rows (cascade handles FK).
+     */
+    public function delete(int $id): bool
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM badges WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        return $stmt->rowCount() === 1;
+    }
 }
