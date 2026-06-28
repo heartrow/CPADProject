@@ -19,8 +19,10 @@ export const useAuth = defineStore('auth', {
       ? JSON.parse(storedUser) 
       : null;
 
-    token: localStorage.getItem('token') || null
-    user: parsedUser
+    return {
+      token: localStorage.getItem('token') || null,
+      user: parsedUser
+    };
   },
 
   getters: {
