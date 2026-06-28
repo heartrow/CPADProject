@@ -7,26 +7,26 @@ const router = createRouter({
   routes: [
     { path: '/', 
       name: 'login', 
-      component: import('../../views/LoginView.vue')
+      component: () => import('../../views/LoginView.vue'),
     },
     { path: '/dashboard', 
       name: 'dashboard', 
-      component: import('../../views/DashboardView.vue'),
+      component: () => import('../../views/DashboardView.vue'),
       meta: { requiresAuth: true }
     },
     { path: '/activity', 
       name: 'activity', 
-      component: import('../../views/ActivityView.vue'),
+      component: () => import('../../views/ActivityView.vue'),
       meta: { requiresAuth: true }
     },
     { path: '/challenges', 
       name: 'challenges', 
-      component: import('../../views/ChallengesView.vue'),
+      component: () => import('../../views/ChallengesView.vue'),
       meta: { requiresAuth: true }
     },
     { path: '/profile', 
       name: 'profile', 
-      component: import('../../views/ProfileView.vue'), 
+      component: () => import('../../views/ProfileView.vue'), 
       meta: { requiresAuth: true }
     }, 
   ],

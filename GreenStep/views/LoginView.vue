@@ -10,17 +10,17 @@
         <p v-if="error" class="alert error">{{ error }}</p>
         <div class="input-group">
           <label for="email">Email Address</label>
-          <input type="email" id="email" v-model="email" placeholder="you@example.com" required />
+          <input type="email" id="email" v-model="email" placeholder="you@example.com" autocomplete="email" required />
         </div>
 
         <div class="input-group">
           <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" placeholder="••••••••" required />
+          <input type="password" id="password" v-model="password" placeholder="••••••••" autocomplete="password" required />
         </div>
 
         <div class="form-actions">
           <label class="remember-me">
-            <input type="checkbox" v-model="remember" />
+            <input type="checkbox"/>
             <span>Remember me</span>
           </label>
           <a href="#" class="forgot-password">Forgot password?</a>

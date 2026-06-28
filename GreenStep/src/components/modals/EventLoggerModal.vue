@@ -11,19 +11,19 @@
 
       <h3 class="section-label">1. Record New Event</h3>
       <div class="quick-add-grid">
-        <button class="quick-add-btn" @click="$emit('openModal', 'transport')">
+        <button class="quick-add-btn" @click="openModal('transport')">
           <span class="icon">🚗</span>
           <span class="label">Transport</span>
         </button>
-        <button class="quick-add-btn" @click="$emit('openModal', 'meal')">
+        <button class="quick-add-btn" @click="openModal('meal')">
           <span class="icon">🍔</span>
           <span class="label">Meal</span>
         </button>
-        <button class="quick-add-btn" @click="$emit('openModal', 'energy')">
+        <button class="quick-add-btn" @click="openModal('energy')">
           <span class="icon">⚡</span>
           <span class="label">Energy</span>
         </button>
-        <button class="quick-add-btn" @click="$emit('openModal', 'recycle')">
+        <button class="quick-add-btn" @click="openModal('recycle')">
           <span class="icon">♻️</span>
           <span class="label">Recycle</span>
         </button>
@@ -31,22 +31,33 @@
 
       <h3 class="section-label">2. One-Tap Templates</h3>
       <div class="presets-list">
-        <button
-          v-for="preset in presets"
-          :key="preset.id"
-          class="preset-btn"
-          @click="logPreset(preset.title)"
-        >
-          <span class="preset-icon">{{ preset.icon }}</span>
-          <div class="preset-details">
-            <div class="preset-title">{{ preset.title }}</div>
-            <div class="preset-desc">{{ preset.desc }} • Est {{ preset.co2 }} kg CO₂</div>
+        <div v-if="loadingTemplate" class="no-logs">
+          Loading presets..
+        </div>
+        <div v-else>
+          <div v-if="presets.length === 0"></div>
+          <div v-else>
+            <button
+              v-for="preset in presets"
+              :key="preset.id"
+              class="preset-btn"
+              @click="logPreset(preset)"
+            >
+              <span class="preset-icon">{{ categoryIcons[preset.category] }}</span>
+              <div class="preset-details">
+                <div class="preset-title">{{ preset.title }}</div>
+                <div class="preset-desc">{{ preset.description }} • {{ parseFloat(preset.amount).toFixed(2) }} kg</div>
+              </div>
+              <div class="preset-actions">
+                <!--<button class="action-btn log-badge" @click="logPreset(preset)">+ LOG</button>-->
+                <button class="action-btn edit-btn" @click="editPreset(preset)">✏️</button>
+                <button class="action-btn delete-btn" @click="deletePreset(preset.id)">🗑️</button>
+              </div>
+            </button>
           </div>
-          <span class="log-badge">+ LOG</span>
-        </button>
-
-        <button class="add-new-preset-btn" @click="$emit('openModal', 'createPreset')">
-          <span class="icon">➕</span> Create Custom Template
+        </div>
+        <button class="add-new-preset-btn" @click="openModal('createPreset')">
+              <span class="icon">➕</span> Create Custom Template
         </button>
       </div>
     </div>
@@ -54,44 +65,53 @@
 </template>
 
 <script async setup>
-  import { ref } from 'vue'
+  import { ref } from 'vue';
 
-  const activeModal = ref(null)
-
-  const presets = ref([
-    {
-      id: 1,
-      icon: '🚗',
-      title: 'Commute to Johor Campus',
-      desc: '2025 Proton Saga (Petrol) • 15km',
-      co2: 2.4,
-    },
-    {
-      id: 2,
-      icon: '⚡',
-      title: 'Coding Session',
-      desc: 'SFF Custom PC & Monitor • 4 Hours',
-      co2: 0.8,
-    },
-    {
-      id: 3,
-      icon: '🍔',
-      title: 'Standard Lunch',
-      desc: 'Mixed Diet (Chicken/Fish)',
-      co2: 1.2,
-    },
-  ])
-
-  const openModal = (type) => {
-    activeModal.value = type
+  import api from '@/api/client';
+  const error = ref('');
+  const props  = defineProps(['presets','loadingTemplate']);
+  const emit = defineEmits(['openModal', 'closeModal', 'configurePreset', 'templateDeleted', 'logSubmitted']);
+  const categoryIcons = {
+    transport: '🚗',
+    meal: '🍽️',
+    energy: '⚡',
+    recycle: '♻️'
   }
 
-  const addNewTemplate = (newTemplateData) => {
-    presets.value.push(newTemplateData)
+  function openModal(activityType) {
+    emit('openModal', activityType)
   }
 
-  const logPreset = (activityName) => {
-    console.log(`Logged preset: ${activityName}`)
+  async function deletePreset(id) {
+    if (!confirm('Delete this template?')) 
+      return;
+    try {
+      await api.delete(`/api/usertemplates/${id}`);
+      emit('templateDeleted')
+    } catch (e) {
+      error.value = e.response?.data?.error || e.message;
+    }
+    console.log(error.value)
+  }
+
+  function editPreset(preset) {
+    emit('configurePreset', preset)
+    emit('openModal', 'createPreset');
+  }
+
+  async function logPreset(preset) {
+    try {
+      const payload = {
+          activity_type_id: preset.activity_type_id,
+          title: preset.title,
+          amount: preset.amount
+        };
+      await api.post('/api/activitylogs', payload);
+      emit('logSubmitted'); // refresh the log list in parent
+      emit('closeModal');
+    } catch (e) {
+      error.value = e.response?.data?.error || e.message;
+    } 
   }
 </script>
 
@@ -203,6 +223,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
+    overflow: hidden;
   }
 
   .preset-btn {
@@ -215,6 +236,9 @@
     width: 100%;
     cursor: pointer;
     transition: background-color 0.2s ease, border-color 0.2s;
+    box-sizing: border-box; 
+    overflow: hidden;        
+    min-width: 0;            
   }
 
   .preset-btn:hover {
@@ -230,18 +254,25 @@
   .preset-details {
     text-align: left;
     flex-grow: 1;
+    min-width: 0;
   }
 
   .preset-title {
     font-weight: 700;
     color: var(--text-main);
     font-size: 0.95rem;
+    white-space: nowrap;      
+    overflow: hidden;         
+    text-overflow: ellipsis;  
   }
 
   .preset-desc {
     font-size: 0.8rem;
     color: var(--text-muted);
     margin-top: 0.15rem;
+    white-space: nowrap;      
+    overflow: hidden;         
+    text-overflow: ellipsis; 
   }
 
   .log-badge {
@@ -280,6 +311,48 @@
     border-color: var(--primary);
     color: var(--primary);
     background-color: var(--primary-light);
+  }
+
+  .preset-actions {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .edit-btn {
+    background-color: var(--primary);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+  }
+
+  .edit-btn:hover {
+    background-color: var(--primary-light);
+  }
+
+  .delete-btn {
+    background-color: #d9534f;
+    color: #d9534f;
+    border: 1px solid #d9534f;
+  }
+
+  .delete-btn:hover {
+    background-color: #fde8e8;
+  }
+
+  .no-logs {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.95rem;
   }
 
   @media (max-width: 768px) {

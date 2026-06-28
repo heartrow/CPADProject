@@ -27,7 +27,7 @@
 
         <div class="modal-footer">
           <button type="button" class="cancel-btn" @click="$emit('closeModal')">Cancel</button>
-          <button type="submit" class="submit-btn" :disabled="busy">Log Meal</button>
+          <button type="submit" class="submit-btn" :disabled="busy">{{ busy ? 'Logging...' : editLog ? 'Update Log' : 'Log'  }}</button>
         </div>
       </form>
     </div>

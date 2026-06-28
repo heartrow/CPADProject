@@ -58,7 +58,6 @@ return function (App $app): void {
     $app->post('/auth/login',    [$authCtrl, 'login']);
 
     // -- Activity Log routes -------------------------------------------------
-    
     $app->group('/api/activitylogs', function ($g) use ($logCtrl) {
         $g->get     ('',        [$logCtrl, 'index']);
         $g->get     ('/{id}',   [$logCtrl, 'show']);

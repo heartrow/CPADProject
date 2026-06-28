@@ -23,10 +23,14 @@
   const energyTypes   = computed(() => activityTypes.value.filter(t => t.category === 'energy'));
   const recycleTypes  = computed(() => activityTypes.value.filter(t => t.category === 'recycle'));
   const selectedLog = ref(null)
+  const presets = ref([])
+  const selectedPreset = ref(null)
 
   const recentLogs = ref([])
   const error = ref('')
   const loading = ref(false)
+  const loadingType = ref(false)
+  const loadingTemplate = ref(false)
   const q = ref('')
 
   async function deleteLog(id) {
@@ -58,14 +62,42 @@
   }
 
   async function loadActivityTypes() {
-    const { data } = await api.get('/api/activitytypes');
-    activityTypes.value = data.data;
+    loadingType.value = true 
+    try {
+      const { data } = await api.get('/api/activitytypes');
+      activityTypes.value = data.data;
+    } catch (e) {
+      error.value = e.response?.data?.error || e.message;
+    } finally {
+      loadingType.value = false
+    }
   }
 
-  onMounted(() => {
-    load();
-    loadActivityTypes();
-  });
+  async function loadTemplates() {
+    loadingTemplate.value = true
+    try {
+      const { data } = await api.get('/api/usertemplates');
+      presets.value = data.data;
+    } catch (e) {
+      error.value = e.response?.data?.error || e.message;
+    } finally {
+      loadingTemplate.value = false
+    }
+  }
+
+const totalToday = computed(() => {
+const today = new Date().toISOString().split('T')[0]; // "2026-06-28"
+return recentLogs.value
+  .filter(log => log.created_at.startsWith(today))
+  .reduce((sum, log) => sum + parseFloat(log.co2_emission), 0)
+  .toFixed(2);
+});
+
+onMounted(() => {
+  load();
+  loadActivityTypes();
+  loadTemplates();
+});
 </script>
 
 <template>
@@ -82,7 +114,7 @@
           </div>
          <div class="header-right">
            <div class="total-today">
-              <div class="total-value">6.1 kg CO₂</div>
+              <div class="total-value">{{ totalToday }} kg CO₂</div>
               <div class="total-label">Total Today</div>
             </div>
             <button class="add-activity-btn" @click="activeModal = 'eventLogger'">
@@ -92,25 +124,31 @@
         </div>
 
         <div class="log-list">
-          <div v-if="recentLogs.length === 0" class="no-logs">
-            No recent logs yet.
+          <div v-if="loading" class="no-logs">
+            Loading...
           </div>
 
-          <div v-else v-for="log in recentLogs" :key="log.id" class="log-item">
-            <div class="log-icon-wrapper">
-              <span class="log-icon">{{ categoryIcons[log.category] }}</span>
+          <div v-else>
+            <div v-if="recentLogs.length === 0" class="no-logs">
+              No recent logs yet.
             </div>
-            <div class="log-info">
-              <div class="log-title">{{ log.title }}</div>
-              <div class="log-description">
-                {{ log.activity_name }} • {{ log.amount }} {{ log.unit }}
+
+            <div v-else v-for="log in recentLogs" :key="log.id" class="log-item">
+              <div class="log-icon-wrapper">
+                <span class="log-icon">{{ categoryIcons[log.category] }}</span>
               </div>
-              <div class="log-time">{{ log.created_at }}</div>
-            </div>
-            <div class="log-co2">+{{ (log.amount * log.co2_per_unit).toFixed(2) }} kg</div>
-            <div class="log-actions">
-              <button class="action-btn edit-btn" @click="editLog(log)">✏️</button>
-              <button class="action-btn delete-btn" @click="deleteLog(log.id)">🗑️</button>
+              <div class="log-info">
+                <div class="log-title">{{ log.title }}</div>
+                <div class="log-description">
+                  {{ log.activity_name }} • {{ parseFloat(log.amount).toFixed(2) }} {{ log.unit }}
+                </div>
+                <div class="log-time">{{ log.created_at }}</div>
+              </div>
+              <div class="log-co2">+{{ parseFloat(log.co2_emission).toFixed(2) }} kg</div>
+              <div class="log-actions">
+                <button class="action-btn edit-btn" @click="editLog(log)">✏️</button>
+                <button class="action-btn delete-btn" @click="deleteLog(log.id)">🗑️</button>
+              </div>
             </div>
           </div>
         </div>
@@ -120,12 +158,21 @@
     <!-- Modals -->
     <EventLoggerModal 
       v-if="activeModal === 'eventLogger'" 
+      :presets="presets"
+      :loadingTemplate="loadingTemplate"
+      @configurePreset="selectedPreset = $event"
       @closeModal="activeModal = null"
       @openModal="activeModal = $event"
+      @templateDeleted="loadTemplates"
+      @logSubmitted="load"
     />
     <CreatePresetModal
       v-if="activeModal === 'createPreset'"
+      :selectedPreset="selectedPreset"
+      :activityTypes="activityTypes"
       @closeModal="activeModal = null"
+      @templateSubmitted="loadTemplates"
+      @templateUpdated="loadTemplates"
     />
     <TransportModal 
       v-if="activeModal === 'transport'" 
@@ -144,12 +191,14 @@
     <EnergyModal 
       v-if="activeModal === 'energy'" 
       :editLog="selectedLog"
+      :options="energyTypes"
       @closeModal="activeModal = null; selectedLog = null" 
       @logSubmitted="load"
     />
     <RecycleModal 
       v-if="activeModal === 'recycle'" 
       :editLog="selectedLog"
+      :options="recycleTypes"
       @closeModal="activeModal = null; selectedLog = null" 
       @logSubmitted="load"
     />

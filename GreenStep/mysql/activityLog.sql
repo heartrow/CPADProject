@@ -8,10 +8,11 @@ CREATE TABLE activity_logs (
     id                  INT AUTO_INCREMENT PRIMARY KEY, 
     user_id             INT NOT NULL, 
     activity_type_id    INT NOT NULL, 
-    title					VARCHAR(200) NOT NULL DEFAULT 'Untitled',
-    amount              DECIMAL(10, 2) NOT NULL, 
-    created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP, 
-    updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    title               VARCHAR(200) NOT NULL DEFAULT 'Untitled',
+    amount              DECIMAL(10, 2) NOT NULL,
+    co2_emission        DECIMAL(10, 4) NOT NULL DEFAULT 0.0000,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_log_user 
     FOREIGN KEY (user_id) REFERENCES users(id)
@@ -23,9 +24,9 @@ CREATE TABLE activity_logs (
     ON DELETE CASCADE 
     ON UPDATE CASCADE
 
-)   ENGINE=INNODB; 
+) ENGINE=INNODB;
 
-INSERT INTO activity_logs (user_id, activity_type_id, title, amount) VALUES 
+INSERT INTO activity_logs (user_id, activity_type_id, title, amount, co2_emission) VALUES 
     (   '',  
         '',  
         '',
