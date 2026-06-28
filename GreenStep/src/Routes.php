@@ -24,8 +24,8 @@ return function (App $app): void {
 
     $authCtrl  = new AuthController(new UserRepository($pdo), $jwt);
     $typeCtrl  = new TypeController(new TypeRepository($pdo));
-    $logCtrl   = new LogController(new LogRepository($pdo));
     $badgeCtrl = new BadgeController(new BadgeRepository($pdo));
+    $logCtrl   = new LogController(new LogRepository($pdo), $badgeCtrl);
 
 
     // Public — no token required.

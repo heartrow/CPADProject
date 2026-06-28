@@ -8,7 +8,10 @@ use Psr\Http\Message\ServerRequestInterface as Request;
   
 final class LogController 
 { 
-    public function __construct(private LogRepository $logs) {} 
+    public function __construct(
+        private LogRepository $logs,
+        private ?BadgeController $badgeCtrl = null
+    ) {} 
   
     public function index(Request $r, Response $s): Response 
     { 
@@ -38,16 +41,26 @@ final class LogController
     { 
         $body = (array)$r->getParsedBody(); 
         $errors = $this->validate($body, true); 
-
+ 
         if ($errors) return $this->json($s, ['errors' => $errors], 400); 
-
-        $body['user_id'] = $this->getAuthenticatedUserId($r);
-
+ 
+        $userId = $this->getAuthenticatedUserId($r);
+        $body['user_id'] = $userId;
+ 
         $id = $this->logs->create($body); 
         $newLog = $this->logs->find($id);
-
-        return $this->json($s, ['message' => 'Activity logged', 'data' => $newLog], 201) 
-                    ->withHeader('Location', '/api/activitylogs/' . $id); 
+ 
+        $awarded = [];
+        if ($this->badgeCtrl) {
+            $awarded = $this->badgeCtrl->evaluateAndAward($userId);
+        }
+ 
+        return $this->json($s, [
+            'message' => 'Activity logged',
+            'data' => $newLog,
+            'badges_awarded' => $awarded,
+        ], 201) 
+        ->withHeader('Location', '/api/activitylogs/' . $id); 
     }
 
     public function update(Request $req, Response $res, array $args): Response 
@@ -56,23 +69,32 @@ final class LogController
         $userId = $this->getAuthenticatedUserId($req);
         
         $existing = $this->logs->find($id);
-
+ 
         // Security check: Ensure they own the log before editing
         if (!$existing || (int)$existing['user_id'] !== $userId) {
             return $this->json($res, ['error' => "Activity log {$id} not found"], 404); 
         }
-  
+   
         $body = (array)($req->getParsedBody() ?? []); 
         $errors = $this->validate($body, false); 
-
+ 
         if (!empty($errors)) {
             return $this->json($res, ['errors' => $errors], 400); 
         }
-  
+   
         $this->logs->update($id, $body);  
         $updatedLog = $this->logs->find($id);
         
-        return $this->json($res, ['message' => 'Activity updated', 'data' => $updatedLog]); 
+        $awarded = [];
+        if ($this->badgeCtrl) {
+            $awarded = $this->badgeCtrl->evaluateAndAward($userId);
+        }
+        
+        return $this->json($res, [
+            'message' => 'Activity updated',
+            'data' => $updatedLog,
+            'badges_awarded' => $awarded,
+        ]); 
     } 
 
     public function delete(Request $req, Response $res, array $args): Response 
@@ -119,7 +141,7 @@ final class LogController
     private function getAuthenticatedUserId(Request $r): int
     {
         $auth = (array)$r->getAttribute('auth', []);
-        return (int)($auth['id'] ?? 1); // Fallback to User #1 for local development
+        return (int)($auth['sub'] ?? $auth['id'] ?? 1); // Fallback to User #1 for local development
     }
     
     private function json(Response $r, $data, int $code = 200): Response 
