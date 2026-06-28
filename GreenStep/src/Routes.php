@@ -3,10 +3,12 @@ declare(strict_types=1);
 
 use App\Auth\JwtService;
 use App\Controllers\AuthController;
+use App\Controllers\BadgeController;
 use App\Controllers\TypeController;
 use App\Controllers\LogController;
 use App\Database;
 use App\Middlewares\AuthMiddleware;
+use App\Repositories\BadgeRepository;
 use App\Repositories\TypeRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\LogRepository;
@@ -20,10 +22,11 @@ return function (App $app): void {
     $jwt  = new JwtService();
     $auth = new AuthMiddleware($jwt);
 
-    $authCtrl = new AuthController(new UserRepository($pdo), $jwt);
-    $typeCtrl = new TypeController(new TypeRepository($pdo));
-    $logCtrl = new LogController(new LogRepository($pdo));
-    
+    $authCtrl  = new AuthController(new UserRepository($pdo), $jwt);
+    $typeCtrl  = new TypeController(new TypeRepository($pdo));
+    $logCtrl   = new LogController(new LogRepository($pdo));
+    $badgeCtrl = new BadgeController(new BadgeRepository($pdo));
+
 
     // Public — no token required.
     $app->get('/', function (Request $r, Response $s) {
@@ -45,6 +48,9 @@ return function (App $app): void {
                     'POST   /api/activitytypes',
                     'PUT    /api/activitytypes/{id}',
                     'DELETE /api/activitytypes/{id}   (admin only)',
+
+                    'GET    /api/badges',
+                    'POST   /api/badges/check',
                 ],
             ],
         ]));
@@ -72,6 +78,12 @@ return function (App $app): void {
         $g->post    ('',        [$typeCtrl, 'create']);
         $g->put     ('/{id}',   [$typeCtrl, 'update']);
         $g->delete  ('/{id}',   [$typeCtrl, 'delete']);   // controller also enforces role=admin
+    })->add($auth);
+
+    // -- Badge routes -------------------------------------------------
+    $app->group('/api/badges', function ($g) use ($badgeCtrl) {
+        $g->get  ('',        [$badgeCtrl, 'index']);   // GET  /api/badges
+        $g->post ('/check',  [$badgeCtrl, 'check']);   // POST /api/badges/check
     })->add($auth);
 
     // /auth/me requires a valid JWT.

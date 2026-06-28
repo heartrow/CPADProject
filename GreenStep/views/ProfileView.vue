@@ -1,53 +1,74 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import SideBar from '@/components/SideBar.vue'
+import api from '@/api/client.js'
+import { useAuth } from '@/stores/auth.js'
 
-// State for our tabbed navigation
+// ── State ────────────────────────────────────────────────────
 const activeTab = ref('overview')
+const auth      = useAuth()
 
-const badges = ref([
-  {
-    id: 1,
-    icon: '🌱',
-    name: 'First Step',
-    description: 'Logged your first eco-activity.',
-    unlocked: true,
-    date: 'March 15, 2026'
-  },
-  {
-    id: 2,
-    icon: '🔥',
-    name: 'Streak Master',
-    description: 'Maintained a 5-day logging streak.',
-    unlocked: true,
-    date: 'March 20, 2026'
-  },
-  {
-    id: 3,
-    icon: '🚴',
-    name: 'Zero Emission Commute',
-    description: 'Logged 50km of walking or cycling.',
-    unlocked: false,
-    date: null
-  },
-  {
-    id: 4,
-    icon: '🔌',
-    name: 'Energy Saver',
-    description: 'Reduced electricity usage by 20% this week.',
-    unlocked: false,
-    date: null
-  },
-  {
-    id: 5,
-    icon: '👑',
-    name: 'Campus Champion',
-    description: 'Ranked Top 10 on the campus leaderboard.',
-    unlocked: false,
-    date: null
+const badges    = ref([])
+const isLoading = ref(false)
+const errorMsg  = ref(null)
+
+// ── Computed ─────────────────────────────────────────────────
+const unlockedCount = computed(() => badges.value.filter(b => b.unlocked).length)
+const totalCount    = computed(() => badges.value.length)
+
+// ── Helpers ──────────────────────────────────────────────────
+const BADGE_ICONS = {
+  'First Step'               : '🌱',
+  'Green Beginner'           : '🌿',
+  'Eco Warrior'              : '⚡',
+  'Plant-Based Pioneer'      : '🥗',
+  'Public Transport Champion': '🚌',
+  default                    : '🏅'
+}
+
+function getIcon(name) {
+  return BADGE_ICONS[name] ?? BADGE_ICONS.default
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return null
+  return new Date(dateStr).toLocaleDateString('en-MY', {
+    year : 'numeric',
+    month: 'long',
+    day  : 'numeric'
+  })
+}
+
+// ── Fetch badges ─────────────────────────────────────────────
+// Uses api/client.js (Axios) — JWT is attached automatically by the request interceptor
+async function fetchBadges() {
+  isLoading.value = true
+  errorMsg.value  = null
+
+  try {
+    const res = await api.get('/api/badges')
+
+    badges.value = res.data.data.map(b => ({
+      id         : b.badge_id,
+      icon       : getIcon(b.name),
+      name       : b.name,
+      description: b.description,
+      imageUrl   : b.image_url,
+      unlocked   : b.unlocked,
+      date       : formatDate(b.earned_at)
+    }))
+  } catch (err) {
+    // api/client.js interceptor handles 401 (auto-logout); handle everything else here
+    errorMsg.value = err.response?.data?.error ?? 'Failed to load badges.'
+  } finally {
+    isLoading.value = false
   }
-])
+}
+
+onMounted(() => {
+  fetchBadges()
+})
 </script>
 
 <template>
@@ -58,14 +79,16 @@ const badges = ref([
     <div class="view-section active">
       <div class="card main-profile-card">
 
+        <!-- Profile Header -->
         <div class="profile-header">
           <div class="profile-avatar">👨‍💻</div>
           <div class="profile-info">
-            <h1>Azri</h1>
+            <h1>{{ auth.user?.name ?? 'User' }}</h1>
             <p>📍 Johor, Malaysia</p>
           </div>
         </div>
 
+        <!-- Tab Navigation -->
         <div class="tab-navigation">
           <button
             class="tab-btn"
@@ -85,18 +108,19 @@ const badges = ref([
 
         <hr style="border: 1px solid var(--border); margin: 0 0 2rem 0;">
 
+        <!-- ── Overview Tab ── -->
         <div v-if="activeTab === 'overview'" class="profile-details-grid">
           <div class="card dashed-card">
             <h2 class="card-title">Account Details</h2>
 
             <div class="detail-group">
               <label>Email Address</label>
-              <div class="detail-value">azri@example.com</div>
+              <div class="detail-value">{{ auth.user?.email ?? '—' }}</div>
             </div>
 
             <div class="detail-group">
               <label>System Role</label>
-              <div class="detail-value">End-User</div>
+              <div class="detail-value">{{ auth.user?.role ?? '—' }}</div>
             </div>
 
             <div class="detail-group">
@@ -117,39 +141,61 @@ const badges = ref([
               <label>Carbon Tracking Factor</label>
               <div class="detail-value">Standard MY Baseline</div>
             </div>
-
           </div>
         </div>
 
+        <!-- ── Badges Tab ── -->
         <div v-if="activeTab === 'badges'" class="badges-tab">
-          <div class="badges-stats">
-            <div class="stat-badge">
-              <span class="stat-num">2</span>
-              <span class="stat-label">Unlocked</span>
-            </div>
-            <div class="stat-badge">
-              <span class="stat-num">5</span>
-              <span class="stat-label">Total Badges</span>
-            </div>
+
+          <!-- Loading -->
+          <div v-if="isLoading" class="badges-feedback">
+            <span>⏳</span> Loading badges…
           </div>
 
-          <div class="badges-grid">
-            <div
-              v-for="badge in badges"
-              :key="badge.id"
-              class="badge-card"
-              :class="{ 'locked': !badge.unlocked }"
-            >
-              <div class="badge-icon">{{ badge.icon }}</div>
-              <h3 class="badge-name">{{ badge.name }}</h3>
-              <p class="badge-desc">{{ badge.description }}</p>
+          <!-- Error -->
+          <div v-else-if="errorMsg" class="badges-feedback error">
+            ⚠️ {{ errorMsg }}
+            <button class="retry-btn" @click="fetchBadges">Retry</button>
+          </div>
 
-              <div class="badge-footer">
-                <span v-if="badge.unlocked" class="date-unlocked">Unlocked: {{ badge.date }}</span>
-                <span v-else class="locked-text">🔒 Locked</span>
+          <!-- Loaded -->
+          <template v-else>
+            <div class="badges-stats">
+              <div class="stat-badge">
+                <span class="stat-num">{{ unlockedCount }}</span>
+                <span class="stat-label">Unlocked</span>
+              </div>
+              <div class="stat-badge">
+                <span class="stat-num">{{ totalCount }}</span>
+                <span class="stat-label">Total Badges</span>
               </div>
             </div>
-          </div>
+
+            <div v-if="badges.length === 0" class="badges-feedback">
+              No badges yet. Start logging activities to earn your first one!
+            </div>
+
+            <div v-else class="badges-grid">
+              <div
+                v-for="badge in badges"
+                :key="badge.id"
+                class="badge-card"
+                :class="{ locked: !badge.unlocked }"
+              >
+                <div class="badge-icon">{{ badge.icon }}</div>
+                <h3 class="badge-name">{{ badge.name }}</h3>
+                <p class="badge-desc">{{ badge.description }}</p>
+
+                <div class="badge-footer">
+                  <span v-if="badge.unlocked" class="date-unlocked">
+                    Unlocked: {{ badge.date }}
+                  </span>
+                  <span v-else class="locked-text">🔒 Locked</span>
+                </div>
+              </div>
+            </div>
+          </template>
+
         </div>
 
       </div>
@@ -231,7 +277,7 @@ const badges = ref([
 }
 
 .tab-btn:hover {
-  background-color: rgba(0,0,0,0.05);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .tab-btn.active {
@@ -240,7 +286,7 @@ const badges = ref([
   border: 1px solid var(--border);
 }
 
-/* --- Overview Tab Styles --- */
+/* --- Overview Tab --- */
 .profile-details-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -284,24 +330,7 @@ const badges = ref([
   font-weight: 500;
 }
 
-.btn-action.edit-btn {
-  margin-top: auto;
-  align-self: stretch;
-  background-color: var(--primary);
-  color: white;
-  border: none;
-  padding: 0.85rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-action.edit-btn:hover {
-  background-color: #4a5e29;
-}
-
-/* --- Badges Tab Styles --- */
+/* --- Badges Tab --- */
 .badges-stats {
   display: flex;
   gap: 1.5rem;
@@ -385,7 +414,6 @@ const badges = ref([
   color: #999;
 }
 
-/* Locked state dims the badge */
 .badge-card.locked {
   background-color: #f9f9f9;
   border-color: #eee;
@@ -400,14 +428,39 @@ const badges = ref([
   color: #aaa;
 }
 
-/* --- Responsive Adjustments --- */
+/* --- Feedback states --- */
+.badges-feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.badges-feedback.error {
+  border-color: #f5c6c6;
+  background-color: #fff5f5;
+  color: #c0392b;
+}
+
+.retry-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #c0392b;
+  color: #c0392b;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* --- Responsive --- */
 @media (max-width: 1024px) {
-  .profile-details-grid {
-    grid-template-columns: 1fr;
-  }
-  .badges-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .profile-details-grid { grid-template-columns: 1fr; }
+  .badges-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
@@ -416,17 +469,8 @@ const badges = ref([
     padding: 1rem;
     padding-bottom: 90px;
   }
-
-  .main-profile-card {
-    padding: 1.5rem;
-  }
-
-  .badges-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tab-navigation {
-    flex-direction: column;
-  }
+  .main-profile-card { padding: 1.5rem; }
+  .badges-grid { grid-template-columns: 1fr; }
+  .tab-navigation { flex-direction: column; }
 }
 </style>
