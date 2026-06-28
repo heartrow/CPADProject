@@ -36,10 +36,15 @@ final class AuthController {
             'expires_in'   => $this->jwt->ttl(),
             'access_token' => $token,
             'user'         => [
-                'id'    => $u['id'],
-                'name'  => $u['name'],
-                'role'  => $u['role'],
-                'email' => $u['email'],
+                'id'            => $u['id'],
+                'name'          => $u['name'],
+                'role'          => $u['role'],
+                'email'         => $u['email'],
+                'location'      => $u['location'] ?? 'Johor, Malaysia',
+                'program'       => $u['program'] ?? 'Software Engineering Student',
+                'avatar'        => $u['avatar'] ?? '👨‍💻',
+                'carbon_factor' => $u['carbon_factor'] ?? 'Standard MY Baseline',
+                'created_at'    => $u['created_at'] ?? null,
             ],
         ]);
     }
@@ -50,6 +55,40 @@ final class AuthController {
         return $u ? $this->json($s, $u) 
                   : $this->json($s, ['error'=>'Not found'], 404); 
     } 
+    
+    public function updateProfile(Request $r, Response $s): Response {
+        $auth = (array)$r->getAttribute('auth', []);
+        $userId = (int)($auth['sub'] ?? 0);
+        
+        $body = (array)$r->getParsedBody();
+        
+        $errors = [];
+        if (empty($body['name']) || mb_strlen(trim($body['name'])) < 2) {
+            $errors['name'] = 'min 2 chars';
+        }
+        
+        if ($errors) {
+            return $this->json($s, ['errors' => $errors], 400);
+        }
+        
+        $success = $this->users->updateProfile($userId, [
+            'name'          => $body['name'] ?? '',
+            'location'      => $body['location'] ?? 'Johor, Malaysia',
+            'program'       => $body['program'] ?? 'Software Engineering Student',
+            'avatar'        => $body['avatar'] ?? '👨‍💻',
+            'carbon_factor' => $body['carbon_factor'] ?? 'Standard MY Baseline',
+        ]);
+        
+        if (!$success) {
+            return $this->json($s, ['error' => 'Failed to update profile'], 500);
+        }
+        
+        $updatedUser = $this->users->findById($userId);
+        return $this->json($s, [
+            'message' => 'Profile updated successfully',
+            'user'    => $updatedUser
+        ]);
+    }
     private function json(Response $s, $d, int $c=200): Response { 
         $s->getBody()->write(json_encode($d, JSON_PRETTY_PRINT)); 
         return $s->withHeader('Content-Type','application/json')->withStatus($c); 

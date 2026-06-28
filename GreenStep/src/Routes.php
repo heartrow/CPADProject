@@ -88,6 +88,7 @@ return function (App $app): void {
 
     // /auth/me requires a valid JWT.
     $app->get('/auth/me', [$authCtrl, 'me'])->add($auth);
+    $app->put('/auth/profile', [$authCtrl, 'updateProfile'])->add($auth);
 
     // CORS pre-flight catch-all.
     $app->options('/{routes:.+}', fn(Request $r, Response $s) => $s);

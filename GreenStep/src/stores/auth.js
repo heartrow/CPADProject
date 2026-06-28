@@ -14,13 +14,14 @@ const baseURL = import.meta.env.VITE_API_BASE_URL;
 export const useAuth = defineStore('auth', {
   state: () => {
     const storedUser = localStorage.getItem('user');
-    // Check if it exists AND isn't the string 'undefined'
     const parsedUser = (storedUser && storedUser !== 'undefined') 
       ? JSON.parse(storedUser) 
       : null;
 
-    token: localStorage.getItem('token') || null
-    user: parsedUser
+    return {
+      token: localStorage.getItem('token') || null,
+      user: parsedUser
+    };
   },
 
   getters: {
@@ -40,6 +41,11 @@ export const useAuth = defineStore('auth', {
     async register(name, email, password) {
       await axios.post(`${baseURL}/auth/register`, { name, email, password });
       await this.login(email, password);    // auto-login after register
+    },
+
+    setUser(user) {
+      this.user = user;
+      localStorage.setItem('user', JSON.stringify(user));
     },
 
     logout() {
