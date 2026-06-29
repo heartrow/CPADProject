@@ -16,7 +16,6 @@ coverage
 
 # Editor directories and files
 .vscode/*
-!.vscode/extensions.json
 .idea
 *.suo
 *.ntvs*
@@ -43,4 +42,5 @@ __screenshots__/
 
 # environment variables
 .env
-.env.*
+.env.development
+.env.production

@@ -40,7 +40,7 @@ export const useAuth = defineStore('auth', {
 
     async register(name, email, password) {
       await axios.post(`${baseURL}/auth/register`, { name, email, password });
-      await this.login(email, password);    // auto-login after register
+      //await this.login(email, password);    // auto-login after register
     },
 
     setUser(user) {

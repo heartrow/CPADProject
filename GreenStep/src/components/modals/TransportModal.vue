@@ -1,52 +1,103 @@
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-
+  <div class="modal-overlay" @click.self="$emit('closeModal')">
     <div class="modal-card">
-
       <div class="modal-header">
         <h2>🚗 Log Transport</h2>
-        <button class="close-btn" @click="$emit('close')">✕</button>
+        <button class="close-btn" @click="$emit('closeModal')">✕</button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
+      <form @submit.prevent="submitLog" class="modal-body">
+
+        <div class="form-group">
+          <label>Title</label>
+          <input v-model='form.title' placeholder="Commuting to work" type="string" required>
+        </div>
+
         <div class="form-group">
           <label>Vehicle Type</label>
-          <select v-model="vehicleType">
-            <option value="petrol">Private Car (Petrol)</option>
-            <option value="ev">Electric Vehicle (EV)</option>
-            <option value="bus">Public Bus</option>
-            <option value="train">Train / MRT</option>
+          <select v-model="form.type_id">
+            <option v-for="o in options" :key="o.id" :value="o.id">{{ o.name }}</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Distance Traveled (km)</label>
-          <input type="number" v-model="distance" placeholder="e.g., 15" required />
+          <input type="number" v-model="form.amount" placeholder="e.g., 15" required @change="updateForm"/>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="cancel-btn" @click="$emit('close')">Cancel</button>
-          <button type="submit" class="submit-btn">Log Activity</button>
+          <button type="button" class="cancel-btn" @click="$emit('closeModal')">Cancel</button>
+          <button type="submit" class="submit-btn" :disabled="busy">{{ busy ? 'Logging...' : editLog ? 'Update Log' : 'Log'  }}</button>
         </div>
       </form>
-
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
+<script async setup>
+  import { ref, onMounted } from 'vue';
+  import api from '../../api/client';
 
-// Define the events this modal can send back to ActivityView
-defineEmits(['close']);
+  const emit = defineEmits(['closeModal', 'logSubmitted'])
+  const props = defineProps(['editLog', 'options'])
+  const activityType = 'transport';
 
-// Form data
-const vehicleType = ref('petrol');
-const distance = ref('');
+  const selectedOption = ref(null);
+  const form = ref({ 
+    id: 0,
+    type_id: 0, 
+    category: activityType, 
+    title: '',
+    amount: '', 
+  });
+  const error   = ref('');
+  const busy = ref(false);
 
-const handleSubmit = () => {
-  console.log(`Logging ${distance.value}km via ${vehicleType.value}`);
-};
+  async function submitLog() {
+    error.value = '';
+    busy.value = true;
+
+    try {
+      const payload = {
+        activity_type_id: Number(form.value.type_id),
+        title: form.value.title,
+        amount: Number(form.value.amount)
+      };
+
+      if (props.editLog) {
+        console.log(payload);
+        await api.put(`/api/activitylogs/${props.editLog.id}`, payload);
+      } else {
+        await api.post('/api/activitylogs', payload);
+      }
+
+      selectedOption.value = null;
+
+      form.value.id = 0;
+      form.value.type_id = 0;
+      form.value.amount = '';
+      form.value.title = '';
+
+      emit('logSubmitted');
+      emit('closeModal');
+
+    } catch (e) {
+      const d = e.response?.data;
+      error.value = d?.errors ? Object.values(d.errors).join(' • ') : (d?.error || e.message);
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  
+  onMounted(() => {
+    if (props.editLog) {
+      form.value.id = props.editLog.id;
+      form.value.type_id = props.editLog.activity_type_id;
+      form.value.title = props.editLog.title;
+      form.value.amount = props.editLog.amount;
+    }
+  })
 </script>
 
 <style scoped>

@@ -10,20 +10,20 @@
         <p v-if="error" class="alert error">{{ error }}</p>
         <div class="input-group">
           <label for="email">Email Address</label>
-          <input type="email" id="email" v-model="email" placeholder="you@example.com" required />
+          <input type="email" id="email" v-model="email" placeholder="you@example.com" autocomplete="email" required />
         </div>
 
         <div class="input-group">
           <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" placeholder="••••••••" required />
+          <input type="password" id="password" v-model="password" placeholder="••••••••" autocomplete="password" required />
         </div>
 
         <div class="form-actions">
           <label class="remember-me">
-            <input type="checkbox" v-model="remember" />
+            <input type="checkbox"/>
             <span>Remember me</span>
           </label>
-          <a href="#" class="forgot-password">Forgot password?</a>
+          <!--<a href="#" class="forgot-password">Forgot password?</a>-->
         </div>
 
         <button type="submit" class="submit-btn" :disabled="busy" @click="submit">
@@ -32,7 +32,7 @@
       </form>
 
       <div class="login-footer">
-        <p>Don't have an account? <a href="#">Sign up here</a></p>
+        <p>Don't have an account? <router-link to="/register">Sign up here</router-link></p>
       </div>
     </div>
   </div>
@@ -214,7 +214,7 @@
   }
 
   .alert.error {
-    background: rgba(255, 90, 90, 0.5); 
+    background: #fde8e8; 
     color: #ff0000; 
     padding: 10px 14px; 
     border-radius: 6px;

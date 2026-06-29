@@ -1,63 +1,129 @@
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
+  <div class="modal-overlay" @click.self="$emit('closeModal')">
     <div class="modal-card">
       <div class="modal-header">
         <h2>✨ Create New Template</h2>
-        <button class="close-btn" @click="$emit('close')">✕</button>
+        <button class="close-btn" @click="$emit('closeModal')">✕</button>
       </div>
 
       <form @submit.prevent="handleSubmit" class="modal-body">
 
         <div class="form-group">
-          <label>Category (Select Icon)</label>
-          <select v-model="newTemplate.icon" required>
-            <option value="🚗">🚗 Transport</option>
-            <option value="🍔">🍔 Meal</option>
-            <option value="⚡">⚡ Energy</option>
-            <option value="♻️">♻️ Recycle</option>
+          <label>Category</label>
+          <select v-model="selectedCategory" @change="form.activity_type_id = 0" required>
+            <option disabled value="">Select a category...</option>
+            <option value="transport">🚗 Transport</option>
+            <option value="meal">🍔 Meal</option>
+            <option value="energy">⚡ Energy</option>
+            <option value="recycle">♻️ Recycle</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Activity Type</label>
+          <select v-model="form.activity_type_id" :disabled="!selectedCategory" required>
+            <option disabled value="0">
+              {{ selectedCategory ? 'Select an activity...' : 'Select a category first...' }}
+            </option>
+            <option v-for="type in filteredTypes" :key="type.id" :value="type.id">
+              {{ type.name }}
+            </option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Template Name</label>
-          <input type="text" v-model="newTemplate.title" placeholder="e.g., Gym Commute" required />
+          <input type="text" v-model="form.title" placeholder="e.g., Gym Commute" required />
         </div>
 
         <div class="form-group">
           <label>Quick Description</label>
-          <input type="text" v-model="newTemplate.desc" placeholder="e.g., 5km drive in Petrol Car" required />
+          <input type="text" v-model="form.description" placeholder="e.g., 5km drive in Petrol Car" />
         </div>
 
         <div class="form-group">
-          <label>Estimated CO₂ (kg)</label>
-          <input type="number" v-model="newTemplate.co2" step="0.1" placeholder="e.g., 1.2" required />
+          <label>Amount ({{ 
+            selectedCategory === 'energy' ? 'hour' : 
+            selectedCategory === 'transport' ? 'km' : 
+            selectedCategory === 'meal' || selectedCategory === 'recycle' ? 'kg' : 
+            'unit' 
+          }})</label>
+          <input type="number" v-model="form.amount" step="0.01" placeholder="e.g., 1.2" required />
         </div>
 
+        <p v-if="error" class="error">{{ error }}</p>
+
         <div class="modal-footer">
-          <button type="button" class="cancel-btn" @click="$emit('close')">Cancel</button>
-          <button type="submit" class="submit-btn">Save Template</button>
+          <button type="button" class="cancel-btn" @click="$emit('closeModal')">Cancel</button>
+          <button type="submit" class="submit-btn" :disabled="busy">
+            {{ busy ? 'Saving...' : props.selectedPreset ? 'Update Template' : 'Save Template' }}
+          </button>
         </div>
+
       </form>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
+<script async setup>
+import { ref, computed, onMounted } from 'vue';
+import api from '@/api/client';
 
-const emit = defineEmits(['close', 'submit']);
+const emit = defineEmits(['closeModal', 'templateSubmitted']);
+const props = defineProps(['activityTypes', 'selectedPreset']);
 
-const newTemplate = ref({
-  icon: '🚗',
+const selectedCategory = ref('');
+const error = ref('');
+const busy = ref(false);
+
+const form = ref({
+  activity_type_id: 0,
   title: '',
-  desc: '',
-  co2: ''
+  description: '',
+  amount: ''
 });
 
-const handleSubmit = () => {
-  emit('submit', { ...newTemplate.value, id: Date.now() });
-  emit('close');
-};
+const filteredTypes = computed(() =>
+  props.activityTypes.filter(t => t.category === selectedCategory.value)
+);
+
+async function handleSubmit() {
+  error.value = '';
+  busy.value = true;
+  try {
+    const payload = {
+      activity_type_id: Number(form.value.activity_type_id),
+      title: form.value.title,
+      description: form.value.description,
+      amount: Number(form.value.amount)
+    };
+
+    if (props.selectedPreset) {
+      await api.put(`/api/usertemplates/${props.selectedPreset.id}`, payload);
+    } else {
+      await api.post('/api/usertemplates', payload);
+    }
+
+    emit('templateSubmitted');
+    emit('closeModal');
+  } catch (e) {
+    const d = e.response?.data;
+    error.value = d?.errors ? Object.values(d.errors).join(' • ') : (d?.error || e.message);
+  } finally {
+    busy.value = false;
+  }
+}
+
+onMounted(() => {
+  if (props.selectedPreset) {
+    selectedCategory.value = props.selectedPreset.category
+    form.value.id = props.selectedPreset.id
+    form.value.activity_type_id = props.selectedPreset.activity_type_id
+    form.value.title = props.selectedPreset.title
+    form.value.description = props.selectedPreset.description
+    form.value.amount = props.selectedPreset.amount
+  }
+})
 </script>
 
 <style scoped>
@@ -174,4 +240,11 @@ const handleSubmit = () => {
 .submit-btn:hover {
   background: #465926;
 }
+
+.error {
+  color: #d9534f;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
 </style>

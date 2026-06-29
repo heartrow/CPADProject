@@ -1,23 +1,22 @@
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
+  <div class="modal-overlay" @click.self="$emit('closeModal')">
     <div class="modal-card">
       <div class="modal-header">
         <h2>🍔 Log a Meal</h2>
-        <button class="close-btn" @click="$emit('close')">✕</button>
+        <button class="close-btn" @click="$emit('closeModal')">✕</button>
       </div>
 
       <form @submit.prevent="submitLog" class="modal-body">
 
         <div class="form-group">
           <label>Title</label>
-          <input v-model='form.title' type="string" required>
+          <input v-model='form.title' placeholder="Nasi Lemak" type="string" required>
         </div>
 
         <div class="form-group">
           <label>Main Ingredient</label>
-          <select v-model="selectedOption" placeholder="Select main ingredient" @change="updateForm">
-            <option value="" disabled>Select main ingredient</option>
-            <option v-for="m in meals" :key="m.id" :value="m">{{ m.name }}</option>
+          <select v-model="form.type_id">
+            <option v-for="o in options" :key="o.id" :value="o.id">{{ o.name }}</option>
           </select>
         </div>
 
@@ -27,8 +26,8 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="cancel-btn" @click="$emit('close')">Cancel</button>
-          <button type="submit" class="submit-btn" :disabled="busy">Log Meal</button>
+          <button type="button" class="cancel-btn" @click="$emit('closeModal')">Cancel</button>
+          <button type="submit" class="submit-btn" :disabled="busy">{{ busy ? 'Logging...' : editLog ? 'Update Log' : 'Log'  }}</button>
         </div>
       </form>
     </div>
@@ -38,48 +37,49 @@
 <script async setup>
   import { ref, onMounted, defineEmits } from 'vue';
   import api from '../../api/client';
-  import { useAuth } from '../../stores/auth';
-  import router from '@/router';
 
-  const emit = defineEmits(['close'])
+  const emit = defineEmits(['closeModal', 'logSubmitted'])
+  const props = defineProps(['editLog', 'options'])
+  const activityType = 'meal';
 
   const selectedOption = ref(null);
   const form = ref({ 
-    id: 0, 
-    category: 'meal', 
+    id: 0,
+    type_id: 0, 
+    category: activityType, 
     title: '',
-    amount: 0, 
+    amount: '', 
   });
-  const meals   = ref([]);
-  const q       = ref('meal');
   const error   = ref('');
-  const ok      = ref('');
-  const loading = ref(false);
   const busy = ref(false);
 
   async function submitLog() {
     error.value = '';
-    ok.value = '';
     busy.value = true;
 
     try {
       const payload = {
-        activity_type_id: Number(form.value.id),
+        activity_type_id: Number(form.value.type_id),
         title: form.value.title,
         amount: Number(form.value.amount)
       };
-      console.log(payload)
 
-      const { data } = await api.post('/api/activitylogs', payload);
+      if (props.editLog) {
+        console.log(payload);
+        await api.put(`/api/activitylogs/${props.editLog.id}`, payload);
+      } else {
+        await api.post('/api/activitylogs', payload);
+      }
 
-      ok.value = 'Activity logged successfully!';
+      selectedOption.value = null;
 
-      // Optional: Auto-wipe the quantity input so they can log another one
       form.value.id = 0;
-      form.value.amount = 0;
+      form.value.type_id = 0;
+      form.value.amount = '';
       form.value.title = '';
 
-      emit('close');
+      emit('logSubmitted');
+      emit('closeModal');
 
     } catch (e) {
       const d = e.response?.data;
@@ -89,27 +89,15 @@
     }
   }
 
-  async function updateForm() {
-    if (!selectedOption)
-      return;
-
-    form.value.id = selectedOption.value.id;
-  }
-
-  async function load() {
-    error.value = '';
-    loading.value = true;
-    try {
-      const { data } = await api.get('/api/activitytypes', { params: { q: q.value || undefined } });
-      meals.value = data.data;
-    } catch (e) {
-      error.value = e.response?.data?.error || e.message;
-    } finally {
-      loading.value = false;
+  
+  onMounted(() => {
+    if (props.editLog) {
+      form.value.id = props.editLog.id;
+      form.value.type_id = props.editLog.activity_type_id;
+      form.value.title = props.editLog.title;
+      form.value.amount = props.editLog.amount;
     }
-  }
-
-  onMounted(load);
+  })
 </script>
 
 <style scoped>
