@@ -23,7 +23,7 @@
             <input type="checkbox"/>
             <span>Remember me</span>
           </label>
-          <a href="#" class="forgot-password">Forgot password?</a>
+          <!--<a href="#" class="forgot-password">Forgot password?</a>-->
         </div>
 
         <button type="submit" class="submit-btn" :disabled="busy" @click="submit">
@@ -32,7 +32,7 @@
       </form>
 
       <div class="login-footer">
-        <p>Don't have an account? <a href="#">Sign up here</a></p>
+        <p>Don't have an account? <router-link to="/register">Sign up here</router-link></p>
       </div>
     </div>
   </div>
@@ -214,7 +214,7 @@
   }
 
   .alert.error {
-    background: rgba(255, 90, 90, 0.5); 
+    background: #fde8e8; 
     color: #ff0000; 
     padding: 10px 14px; 
     border-radius: 6px;

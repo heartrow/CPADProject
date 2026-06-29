@@ -1,4 +1,4 @@
-import App from '@/App.vue';
+//import App from '@/App.vue';
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../stores/auth';
 
@@ -8,6 +8,10 @@ const router = createRouter({
     { path: '/', 
       name: 'login', 
       component: () => import('../../views/LoginView.vue'),
+    },
+    { path: '/register', 
+      name: 'register', 
+      component: () => import('../../views/RegisterView.vue'),
     },
     { path: '/dashboard', 
       name: 'dashboard', 

@@ -85,6 +85,22 @@ final class LogController
         return $this->json($res, ['message' => 'Activity updated', 'data' => $updatedLog]); 
     }
 
+    public function delete(Request $req, Response $res, array $args): Response 
+    { 
+        $id = (int)($args['id'] ?? 0); 
+        $userId = $this->getAuthenticatedUserId($req);
+
+        $existing = $this->logs->find($id);
+
+        if (!$existing || (int)$existing['user_id'] !== $userId) {
+            return $this->json($res, ['error' => "Activity log {$id} not found"], 404); 
+        }
+        
+        $this->logs->delete($id);  
+        
+        return $this->json($res, ['message' => 'Activity log deleted', 'data' => $existing]); 
+    }
+
     private function getAuthenticatedUserId(Request $r): int
     {
         $auth = (array)$r->getAttribute('auth', []);

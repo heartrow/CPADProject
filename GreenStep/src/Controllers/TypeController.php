@@ -24,6 +24,8 @@ final class TypeController {
                      : $this->json($s, ['error'=>'not found'], 404); 
     } 
     public function create(Request $r, Response $s): Response { 
+        if ($guard = $this->requireAdmin($r, $s)) return $guard;
+
         $body = (array)$r->getParsedBody();
 
         $errors = (new Validator())
@@ -42,6 +44,8 @@ final class TypeController {
     }
 
     public function update(Request $req, Response $res, array $args): Response { 
+        if ($guard = $this->requireAdmin($req, $res)) return $guard;
+
         $id = (int)($args['id'] ?? 0); 
         
         $existingType = $this->types->find($id);
@@ -69,11 +73,8 @@ final class TypeController {
     } 
 
     public function delete(Request $req, Response $res, array $args): Response { 
-        $auth = (array)$req->getAttribute('auth', []); 
-        if (($auth['role'] ?? 'member') !== 'admin') { 
-            return $this->json($res, ['error' => 'Admins only'], 403); 
-        } 
-
+        if ($guard = $this->requireAdmin($req, $res)) return $guard;
+        
         $id = (int)($args['id'] ?? 0); 
         
         $deletedType = $this->types->find($id);
@@ -84,6 +85,14 @@ final class TypeController {
         $this->types->delete($id);  
         
         return $this->json($res, ['message' => 'Activity type deleted', 'data' => $deletedType]); 
+    }
+
+    private function requireAdmin(Request $r, Response $s): ?Response {
+        $auth = (array)$r->getAttribute('auth', []);
+        if (($auth['role'] ?? 'member') !== 'admin') {
+            return $this->json($s, ['error' => 'Admins only'], 403);
+        }
+        return null;
     }
     
     private function json(Response $r, $data, int $status = 200): Response { 

@@ -8,6 +8,7 @@ use App\Controllers\TypeController;
 use App\Controllers\LogController;
 use App\Database;
 use App\Middlewares\AuthMiddleware;
+use App\Middlewares\RateLimit;
 use App\Repositories\TypeRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\LogRepository;
@@ -39,14 +40,24 @@ return function (App $app): void {
                 ],
                 'protected' => [
                     'GET    /auth/me',
+
                     'GET    /api/activitylogs',
                     'GET    /api/activitylogs/{id}',
+                    'POST   /api/activitylogs',
+                    'PUT    /api/activitylogs/{id}',
+                    'DELETE /api/activitylogs/{id}',
 
                     'GET    /api/activitytypes',
                     'GET    /api/activitytypes/{id}',
-                    'POST   /api/activitytypes',
-                    'PUT    /api/activitytypes/{id}',
+                    'POST   /api/activitytypes        (admin only)',
+                    'PUT    /api/activitytypes/{id}   (admin only)',
                     'DELETE /api/activitytypes/{id}   (admin only)',
+
+                    'GET    /api/usertemplates',
+                    'GET    /api/usertemplates/{id}',
+                    'POST   /api/usertemplates',
+                    'PUT    /api/usertemplates/{id}',
+                    'DELETE /api/usertemplates/{id}',
                 ],
             ],
         ]));
@@ -54,8 +65,13 @@ return function (App $app): void {
     });
 
     // -- Auth routes -------------------------------------------------
+    $loginMw = new RateLimit( 
+        (int)($_ENV['LOGIN_RATE_LIMIT']     ?? 5), 
+        (int)($_ENV['LOGIN_WINDOW_SECONDS'] ?? 60), 
+        'login' 
+    ); 
     $app->post('/auth/register', [$authCtrl, 'register']);
-    $app->post('/auth/login',    [$authCtrl, 'login']);
+    $app->post('/auth/login',    [$authCtrl, 'login'])->add($loginMw); 
 
     // -- Activity Log routes -------------------------------------------------
     $app->group('/api/activitylogs', function ($g) use ($logCtrl) {
@@ -63,7 +79,7 @@ return function (App $app): void {
         $g->get     ('/{id}',   [$logCtrl, 'show']);
         $g->post    ('',        [$logCtrl, 'create']);
         $g->put     ('/{id}',   [$logCtrl, 'update']);
-        $g->delete  ('/{id}',   [$logCtrl, 'delete']);   // controller also enforces role=admin
+        $g->delete  ('/{id}',   [$logCtrl, 'delete']);   
     })->add($auth);
 
     // -- Activity Type routes -------------------------------------------------
@@ -81,7 +97,7 @@ return function (App $app): void {
         $g->get     ('/{id}',   [$templateCtrl, 'show']);
         $g->post    ('',        [$templateCtrl, 'create']);
         $g->put     ('/{id}',   [$templateCtrl, 'update']);
-        $g->delete  ('/{id}',   [$templateCtrl, 'delete']);   // controller also enforces role=admin
+        $g->delete  ('/{id}',   [$templateCtrl, 'delete']);   
     })->add($auth);
 
     // /auth/me requires a valid JWT.
