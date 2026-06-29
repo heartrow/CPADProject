@@ -42,4 +42,5 @@ __screenshots__/
 
 # environment variables
 .env
-.env.*
+.env.development
+.env.production

@@ -177,17 +177,37 @@ mysql -u root -p your_database < mysql/activityLog.sql
 ```
 
 ### Environment Variables
-Copy `.env.development` and fill in your credentials:
-```
+Copy `.env.example` to `.env` and fill in your credentials:
+
+```env
+# Database
 DB_HOST=
 DB_PORT=
 DB_NAME=
 DB_USER=
 DB_PASS=
+DB_CHARSET=
 
+# App
+APP_DEBUG=
+
+# JWT
 JWT_SECRET=
 JWT_TTL=3600
 JWT_ISSUER=greenstep_api
+
+# Rate Limiting
+LOGIN_RATE_LIMIT=5
+LOGIN_WINDOW_SECONDS=60
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8000
+```
+
+For the frontend, copy into `.env.development` and set:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
 ### Run Development Servers
