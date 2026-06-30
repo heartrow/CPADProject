@@ -17,9 +17,6 @@ const api = axios.create({
 api.interceptors.request.use((cfg) => {
   const auth = useAuth();
 
-  console.log("PINIA SEES THIS TOKEN:", auth.token);
-  console.log("BROWSER SEES THIS TOKEN:", localStorage.getItem('token'));
-
   if (auth.token) {
     cfg.headers.Authorization = `Bearer ${auth.token}`;
   }
