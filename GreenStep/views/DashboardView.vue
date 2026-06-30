@@ -297,14 +297,6 @@ const tipOfTheDay = computed(() => {
     <div id="view-dashboard" class="view-section active">
       <div class="dashboard-grid">
 
-        <div class="col-left">
-          <div class="card" style="flex: 2">
-            <h2 class="card-title">Carbon Footprint Performance Trend</h2>
-            <div class="chart-container">
-              <Line :data="chartData" :options="chartOptions" :plugins="[canvasBackgroundColorPlugin]" />
-            </div>
-          </div>
-
       <div v-if="isLoading" class="loading-state">
         Loading dashboard metrics...
       </div>
@@ -409,7 +401,6 @@ const tipOfTheDay = computed(() => {
 
     </div>
   </div>
-</div>
   </main>
 </template>
 
