@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import SideBar from '@/components/SideBar.vue'
 import api from '@/api/client'
@@ -9,6 +9,7 @@ const activeTab = ref('challenges')
 const isSubmitting = ref(false)
 const statusMessage = ref({ type: '', text: '' })
 const badgesList = ref([])
+const activityTypesList = ref([])
 
 // ── Form Models ──────────────────────────────────────────────
 const challengeForm = ref({
@@ -22,8 +23,16 @@ const badgeForm = ref({
   name: '',
   requirementType: 'activity_count',
   requirementValue: '',
-  category: 'meal' // only used by the streak_days criteria type
+  category: 'meal', // only used by the streak_days criteria type
+  activityTypeId: '' // which specific activity type the streak must be logged against
 })
+
+// Activity types belonging to the currently selected streak category —
+// these populate the "Activity Type" dropdown so admins pick a real,
+// existing activity_type_id instead of one being silently defaulted.
+const filteredActivityTypes = computed(() =>
+  activityTypesList.value.filter(t => t.category === badgeForm.value.category)
+)
 
 // Mirrors BadgeController::buildDescription() on the backend EXACTLY — including
 // the ucfirst() on category — so the preview never drifts from the saved badge.
@@ -47,6 +56,12 @@ const activityForm = ref({
   name: '',
   category: 'energy',
   carbonMultiplier: ''
+})
+
+// Picking a different streak category invalidates whatever activity type
+// was previously selected (it belongs to the old category), so clear it.
+watch(() => badgeForm.value.category, () => {
+  badgeForm.value.activityTypeId = ''
 })
 
 // ── Form Submit Handlers ─────────────────────────────────────
@@ -78,9 +93,7 @@ function buildBadgePayload(form) {
     case 'carbon_saved':
       return { name: form.name, criteria_type: 'total_co2_saved_kg', threshold: form.requirementValue }
     case 'streak_days':
-      // activity_type_id isn't collected by this simplified form yet — defaulting to 0
-      // will fail backend validation, so this case needs its own input before going live.
-      return { name: form.name, criteria_type: 'activity_category_streak', days: form.requirementValue, category: form.category, activity_type_id: form.activityTypeId ?? 0 }
+      return { name: form.name, criteria_type: 'activity_category_streak', days: form.requirementValue, category: form.category, activity_type_id: form.activityTypeId }
     default:
       return { name: form.name, criteria_type: form.requirementType, threshold: form.requirementValue }
   }
@@ -95,12 +108,21 @@ async function fetchBadges() {
   }
 }
 
+async function fetchActivityTypes() {
+  try {
+    const res = await api.get('/api/activitytypes')
+    activityTypesList.value = res.data.data
+  } catch (err) {
+    setStatus('error', err.response?.data?.error ?? 'Failed to load activity types.')
+  }
+}
+
 async function handleCreateBadge() {
   isSubmitting.value = true
   try {
     await api.post('/api/badges', buildBadgePayload(badgeForm.value))
     setStatus('success', '🏅 New system achievement badge created successfully!')
-    badgeForm.value = { name: '', requirementType: 'activity_count', requirementValue: '', category: 'meal' }
+    badgeForm.value = { name: '', requirementType: 'activity_count', requirementValue: '', category: 'meal', activityTypeId: '' }
     await fetchBadges() // refresh the table so the new badge shows up immediately
   } catch (err) {
     setStatus('error', err.response?.data?.errors ? JSON.stringify(err.response.data.errors) : (err.response?.data?.error ?? 'Failed to create badge.'))
@@ -109,7 +131,10 @@ async function handleCreateBadge() {
   }
 }
 
-onMounted(fetchBadges)
+onMounted(() => {
+  fetchBadges()
+  fetchActivityTypes()
+})
 
 async function handleCreateActivity() {
   isSubmitting.value = true
@@ -232,8 +257,21 @@ async function handleCreateActivity() {
                   <option value="meal">Meal</option>
                   <option value="transport">Transport</option>
                   <option value="energy">Energy</option>
-                  <option value="waste">Waste</option>
+                  <option value="recycle">Recycling</option>
                 </select>
+              </div>
+
+              <div class="input-group" v-if="badgeForm.requirementType === 'streak_days'">
+                <label>Activity Type</label>
+                <select v-model="badgeForm.activityTypeId" class="admin-input" required>
+                  <option value="" disabled>Select an activity type…</option>
+                  <option v-for="type in filteredActivityTypes" :key="type.id" :value="type.id">
+                    {{ type.name }}
+                  </option>
+                </select>
+                <p v-if="filteredActivityTypes.length === 0" class="empty-state" style="margin-top: 0.5rem; padding: 0.75rem;">
+                  No activity types exist for this category yet — create one under "Manage Tracked Activities" first.
+                </p>
               </div>
 
               <div class="input-group">
@@ -241,7 +279,11 @@ async function handleCreateActivity() {
                 <input v-model.number="badgeForm.requirementValue" class="admin-input" type="number" min="1" required placeholder="Value (e.g., 25)" />
               </div>
 
-              <button type="submit" class="submit-btn" :disabled="isSubmitting">
+              <button
+                type="submit"
+                class="submit-btn"
+                :disabled="isSubmitting || (badgeForm.requirementType === 'streak_days' && !badgeForm.activityTypeId)"
+              >
                 {{ isSubmitting ? 'Registering Asset...' : 'Register Global Badge' }}
               </button>
             </form>
