@@ -1,4 +1,4 @@
-USE greenstep_db;
+USE railway;
 
 DROP TABLE IF EXISTS user_challenges;
 CREATE TABLE user_challenges (
