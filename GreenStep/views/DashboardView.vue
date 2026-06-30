@@ -295,7 +295,6 @@ const tipOfTheDay = computed(() => {
   <SideBar />
   <main class="home-main">
     <div id="view-dashboard" class="view-section active">
-      <div class="dashboard-grid">
 
       <div v-if="isLoading" class="loading-state">
         Loading dashboard metrics...
@@ -400,7 +399,6 @@ const tipOfTheDay = computed(() => {
       </template>
 
     </div>
-  </div>
   </main>
 </template>
 

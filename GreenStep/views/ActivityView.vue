@@ -62,6 +62,7 @@
   }
 
   async function loadActivityTypes() {
+
     loadingType.value = true 
     try {
       const { data } = await api.get('/api/activitytypes');
@@ -85,6 +86,12 @@
     }
   }
 
+async function loadAllData() {
+  await loadActivityTypes();
+  await loadTemplates();
+  await load();
+}
+
 const totalToday = computed(() => {
 const today = new Date().toISOString().split('T')[0]; // "2026-06-28"
 return recentLogs.value
@@ -94,9 +101,7 @@ return recentLogs.value
 });
 
 onMounted(() => {
-  load();
-  loadActivityTypes();
-  loadTemplates();
+  loadAllData()
 });
 </script>
 
