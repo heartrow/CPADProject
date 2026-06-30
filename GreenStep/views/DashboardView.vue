@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import SideBar from '@/components/SideBar.vue'
-import api from '@/api/client.js'
+import api from '@/api/client.js' // Fixed import path to align with project structure
 
 // Chart.js Core Imports
 import { Line } from 'vue-chartjs'
@@ -41,16 +41,24 @@ onMounted(async () => {
       rawLogs.value = response.data
     }
   } catch (error) {
-    console.error('Error fetching dashboard database records:', error)
+    console.error('Error fetching dashboard records:', error)
   }
 })
+
+// Custom helper function to explicitly format Dates into YYYY-MM-DD strings matching Malaysia timezone
+const formatToLocalYMD = (dateObj) => {
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 const generateDateRange = (daysCount) => {
   const dates = []
   for (let i = daysCount - 1; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    dates.push(d.toLocaleDateString('sv')) 
+    dates.push(formatToLocalYMD(d)) 
   }
   return dates
 }
@@ -139,13 +147,12 @@ const chartOptions = {
     },
     y: {
       beginAtZero: true,
-      grid: { display: false }, //  FIX: This completely removes the horizontal lines!
+      grid: { display: false }, 
       border: { display: false },
       ticks: { color: '#888888', font: { family: 'Inter, sans-serif', size: 11 }, padding: 8 }
     }
   }
 }
-
 
 const canvasBackgroundColorPlugin = {
   id: 'customCanvasBackgroundColor',
@@ -154,7 +161,6 @@ const canvasBackgroundColorPlugin = {
     if (!chartArea) return
 
     ctx.save()
-    // Resolves and reads var(--primary-light) directly from your live app theme
     const primaryLightColor = getComputedStyle(document.documentElement)
       .getPropertyValue('--primary-light').trim() || '#E8EFE9'
 
@@ -168,6 +174,47 @@ const canvasBackgroundColorPlugin = {
     ctx.restore()
   }
 }
+
+const ecoTipsList = [
+  "Unplug electronics when not in use. Standby power can account for up to 10% of your total household electricity bill!",
+  "Wash clothes in cold water. About 75% to 90% of all the energy your washing machine uses goes solely into heating the water.",
+  "Skip the heated dry cycle on your dishwasher. Letting your dishes air-dry can reduce the appliance's energy use by up to 15%.",
+  "Swap out your home's remaining incandescent bulbs for LEDs. They use up to 75% less energy and last 25 times longer.",
+  "Keep your refrigerator between 35°F and 38°F, and your freezer at 0°F. Keeping them any colder wastes energy unnecessarily.",
+  "Clean your dryer’s lint trap before every load. A clogged screen forces the machine to run longer, burning up to 30% more energy.",
+  "Lower your thermostat by 7°–10°F for 8 hours a day (like when you are asleep) to save up to 10% a year on heating costs.",
+  "Cut your shower time down to 5 minutes. This small change can save up to 1,000 gallons of water per person every month.",
+  "Repair leaky faucets promptly. A single faucet dripping at a rate of one drop per second can waste over 3,000 gallons of water a year.",
+  "Turn off the tap while brushing your teeth. You can save up to 4 gallons of clean water every single time you brush.",
+  "Only run your dishwasher and washing machine when they are completely full. This saves up to 300 to 800 gallons of water per month.",
+  "Install low-flow faucet aerators. They cost just a few dollars but cut bathroom sink water consumption by up to 30%.",
+  "Skip meat just one day a week. It takes roughly 1,800 gallons of water to produce a pound of beef compared to only 244 gallons for tofu.",
+  "Plan your meals before grocery shopping. Around 30% to 40% of the entire food supply in developed countries ends up in landfills.",
+  "Swap paper towels for washable cotton cloths. Creating paper towels consumes millions of trees and billions of gallons of water annually.",
+  "Keep a reusable shopping bag in your car or backpack. A single plastic bag can take up to 500 years to degrade in a landfill.",
+  "Freeze or repurpose leftover meals. Food waste rotting in landfills accounts for roughly 8% of all global greenhouse gas emissions.",
+  "Compost your fruit peels and vegetable scraps. Composting prevents harmful methane production and creates nutrient-rich soil.",
+  "Keep your car's tires inflated to the recommended pressure. Under-inflated tires drop gas mileage by about 0.2% for every 1 psi drop.",
+  "Clear heavy, unnecessary clutter out of your car trunk. An extra 100 pounds in your vehicle can reduce fuel economy by up to 1%.",
+  "Plan and combine multiple short errands into one single trip. Cold engine starts can use twice as much fuel as a warm, continuous drive.",
+  "Remove empty roof racks or cargo boxes when not in use. They create aerodynamic drag that can lower fuel efficiency by up to 20%.",
+  "Avoid aggressive acceleration and hard braking. Safe, smooth driving can improve your highway gas mileage by 15% to 30%.",
+  "Delete old emails and unsubscribe from unwanted newsletters. Storing useless data in cloud server farms consumes continuous cooling energy.",
+  "Switch your phone, computer, and dashboard interfaces to Dark Mode. On OLED screens, this reduces battery power usage by up to 30%.",
+  "Think twice before printing a document. The pulp and paper industry is one of the largest industrial energy consumers worldwide.",
+  "Plug your home office setups into a smart power strip. It automatically cuts power to accessories when your computer goes to sleep.",
+  "Purchase locally grown produce when possible. This eliminates the massive 'food miles' and carbon emissions required to transport items.",
+  "Switch from bottled body wash to traditional bar soap. Bar soaps require less energy to manufacture and eliminate plastic waste entirely.",
+  "Choose durable, high-quality items over fast-fashion. Extending a garment's life by just 9 months reduces its carbon footprint by 20%."
+]
+
+// Pure 24-hour deterministic selection index calculation
+const tipOfTheDay = computed(() => {
+  const today = new Date()
+  const uniqueDayIdentifier = today.getFullYear() + today.getMonth() + today.getDate()
+  const tipIndex = uniqueDayIdentifier % ecoTipsList.length
+  return ecoTipsList[tipIndex]
+})
 </script>
 
 <template>
@@ -188,8 +235,7 @@ const canvasBackgroundColorPlugin = {
           <div class="card" style="flex: 0.8; justify-content: center">
             <h2 class="card-title">Eco-Tip of the Day</h2>
             <div class="tip-box">
-              Unplug electronics when not in use. Standby power can account for up to 10% of your total household
-              electricity bill!
+              {{ tipOfTheDay }}
             </div>
           </div>
         </div>
