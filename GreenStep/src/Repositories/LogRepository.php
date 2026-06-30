@@ -61,17 +61,48 @@ final class LogRepository
             ':co2_emission'     => $co2,
         ]); 
 
-        return (int)$this->pdo->lastInsertId(); 
+        $logId = (int)$this->pdo->lastInsertId();
+
+        $this->applyContribution(
+            (int)$data['user_id'],
+            (int)$data['activity_type_id'],
+            (float)$data['amount']
+        );
+
+        return $logId; 
+    }
+
+    private function applyContribution(int $userId, int $activityTypeId, float $amount): void
+    {
+        $sql = "UPDATE user_challenges uc
+                JOIN challenges c ON c.id = uc.challenge_id
+                SET uc.contribution = uc.contribution + :amount
+                WHERE uc.user_id = :user_id
+                  AND c.activity_type_id = :activity_type_id
+                  AND (c.start_date IS NULL OR c.start_date <= CURDATE())
+                  AND (c.end_date IS NULL OR c.end_date >= CURDATE())";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':amount'           => $amount,
+            ':user_id'          => $userId,
+            ':activity_type_id' => $activityTypeId,
+        ]);
     }
   
     public function update(int $id, array $data): int { 
         $sets = [];  
         $args = [':id' => $id];
 
+        $current = $this->find($id);
+        if (!$current) return 0;
+
+        $oldTypeId = (int)$current['activity_type_id'];
+        $oldAmount = (float)$current['amount'];
+        $userId    = (int)$current['user_id'];
+
         // If amount or activity_type_id changed, recalculate co2
         if (array_key_exists('amount', $data) || array_key_exists('activity_type_id', $data)) {
-            // Get current log to fill in missing values
-            $current = $this->find($id);
             $typeId  = (int)($data['activity_type_id'] ?? $current['activity_type_id']);
             $amount  = (float)($data['amount'] ?? $current['amount']);
 
@@ -99,13 +130,37 @@ final class LogRepository
         $stmt = $this->pdo->prepare($sql); 
         $stmt->execute($args); 
 
-        return $stmt->rowCount(); 
+        $rowCount = $stmt->rowCount();
+
+        $newTypeId = (int)($data['activity_type_id'] ?? $oldTypeId);
+        $newAmount = (float)($data['amount'] ?? $oldAmount);
+
+        if ($newTypeId !== $oldTypeId || $newAmount !== $oldAmount) {
+            $this->applyContribution($userId, $oldTypeId, -$oldAmount);
+            $this->applyContribution($userId, $newTypeId, $newAmount);
+        }
+
+        return $rowCount; 
     } 
   
     public function delete(int $id): bool 
     { 
+        $existing = $this->find($id);
+        if (!$existing) return false;
+
         $stmt = $this->pdo->prepare('DELETE FROM activity_logs WHERE id = :id'); 
         $stmt->execute([':id' => $id]); 
-        return $stmt->rowCount() === 1; 
+
+        $deleted = $stmt->rowCount() === 1;
+
+        if ($deleted) {
+            $this->applyContribution(
+                (int)$existing['user_id'],
+                (int)$existing['activity_type_id'],
+                -(float)$existing['amount']
+            );
+        }
+
+        return $deleted; 
     } 
 }

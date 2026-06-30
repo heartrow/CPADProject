@@ -16,6 +16,7 @@ const api = axios.create({
 
 api.interceptors.request.use((cfg) => {
   const auth = useAuth();
+
   if (auth.token) {
     cfg.headers.Authorization = `Bearer ${auth.token}`;
   }

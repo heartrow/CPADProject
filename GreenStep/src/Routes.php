@@ -7,6 +7,7 @@ use App\Controllers\BadgeController;
 use App\Controllers\TemplateController;
 use App\Controllers\TypeController;
 use App\Controllers\LogController;
+use App\Controllers\ChallengeController;
 use App\Database;
 use App\Middlewares\AuthMiddleware;
 use App\Repositories\BadgeRepository;
@@ -15,11 +16,21 @@ use App\Repositories\TypeRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\LogRepository;
 use App\Repositories\TemplateRepository;
+use App\Repositories\ChallengeRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\App;
 
 return function (App $app): void {
+
+    $app->add(function (Request $request, RequestHandler $handler) {
+        $response = $handler->handle($request);
+        return $response
+            ->withHeader('Access-Control-Allow-Origin', '*') // Allows your Vue app to connect
+            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    });
 
     $pdo  = Database::get();
     $jwt  = new JwtService();
@@ -28,8 +39,10 @@ return function (App $app): void {
     $authCtrl  = new AuthController(new UserRepository($pdo), $jwt);
     $typeCtrl  = new TypeController(new TypeRepository($pdo));
     $badgeCtrl = new BadgeController(new BadgeRepository($pdo));
+    $challengeRepo = new ChallengeRepository($pdo);
     $logCtrl   = new LogController(new LogRepository($pdo), $badgeCtrl);
     $templateCtrl = new TemplateController(new TemplateRepository($pdo));
+    $challengeCtrl = new ChallengeController($challengeRepo);
     
     // Public — no token required.
     $app->get('/', function (Request $r, Response $s) {
@@ -65,6 +78,12 @@ return function (App $app): void {
                     'POST   /api/usertemplates',
                     'PUT    /api/usertemplates/{id}',
                     'DELETE /api/usertemplates/{id}',
+
+                    'GET    /api/challenges',
+                    'POST   /api/challenges',
+                    'POST   /api/challenges/join',
+                    'POST   /api/challenges/leave',
+                    'GET    /api/challenges/{id}/leaderboard',
                 ],
             ],
         ]));
@@ -113,6 +132,15 @@ return function (App $app): void {
         $g->post    ('',        [$templateCtrl, 'create']);
         $g->put     ('/{id}',   [$templateCtrl, 'update']);
         $g->delete  ('/{id}',   [$templateCtrl, 'delete']);   
+    })->add($auth);
+
+    // -- Challenges routes -------------------------------------------------
+    $app->group('/api/challenges', function ($g) use ($challengeCtrl) {
+        $g->get  ('',                    [$challengeCtrl, 'index']);
+        $g->post ('',                    [$challengeCtrl, 'create']);
+        $g->post ('/join',               [$challengeCtrl, 'join']);
+        $g->post ('/leave',              [$challengeCtrl, 'leave']);
+        $g->get  ('/{id}/leaderboard',   [$challengeCtrl, 'leaderboard']);
     })->add($auth);
 
     // /auth/me requires a valid JWT.

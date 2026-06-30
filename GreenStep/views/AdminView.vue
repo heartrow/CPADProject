@@ -143,23 +143,16 @@ async function handleCreateActivity() {
         </div>
 
         <div class="tab-navigation">
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeTab === 'challenges' }" 
-            @click="activeTab = 'challenges'"
-          >
-            🏆 Manage Challenges
-          </button>
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeTab === 'badges' }" 
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'badges' }"
             @click="activeTab = 'badges'"
           >
             🏅 Manage Badges
           </button>
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeTab === 'activities' }" 
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'activities' }"
             @click="activeTab = 'activities'"
           >
             🌱 Manage Tracked Activities
@@ -173,40 +166,6 @@ async function handleCreateActivity() {
         </div>
 
         <div class="admin-panel-grid">
-          
-          <form v-if="activeTab === 'challenges'" @submit.prevent="handleCreateChallenge" class="card dashed-card">
-            <h2 class="card-title">Launch Community Target</h2>
-            
-            <div class="input-group">
-              <label>Challenge Campaign Title</label>
-              <input v-model="challengeForm.title" class="admin-input" type="text" required placeholder="e.g., Campus Energy Conservation Sprint" />
-            </div>
-
-            <div class="input-group">
-              <label>Objective & Rules Description</label>
-              <textarea v-model="challengeForm.description" class="admin-input field-textarea" required placeholder="Define parameters, specific target zones, and operational guidelines..."></textarea>
-            </div>
-
-            <div class="form-row-split">
-              <div class="input-group">
-                <label>Target Threshold Goal</label>
-                <input v-model.number="challengeForm.targetGoal" class="admin-input" type="number" min="1" required placeholder="e.g., 5000" />
-              </div>
-              <div class="input-group">
-                <label>Metrics Measuring Unit</label>
-                <select v-model="challengeForm.unit" class="admin-input">
-                  <option value="kWh">Kilowatt Hours (kWh)</option>
-                  <option value="km">Kilometers (km)</option>
-                  <option value="kg CO2e">Carbon Equivalency (kg CO2e)</option>
-                  <option value="Logs">Completed Actions (Logs)</option>
-                </select>
-              </div>
-            </div>
-
-            <button type="submit" class="submit-btn" :disabled="isSubmitting">
-              {{ isSubmitting ? 'Publishing Target...' : 'Publish Challenge to Live Ecosystem' }}
-            </button>
-          </form>
 
           <div v-if="activeTab === 'badges'" class="badge-management-layout">
 
@@ -321,7 +280,7 @@ async function handleCreateActivity() {
           <div class="card info-reference-card">
             <h3 class="info-title">System Action Control Matrix</h3>
             <p class="info-body">Modifications dispatched through this workspace directly apply schema alterations to standard user tracking views.</p>
-            
+
             <div class="notice-stack">
               <div class="notice-item">
                 <span class="notice-dot"></span>

@@ -14,8 +14,8 @@ const baseURL = import.meta.env.VITE_API_BASE_URL;
 export const useAuth = defineStore('auth', {
   state: () => {
     const storedUser = localStorage.getItem('user');
-    const parsedUser = (storedUser && storedUser !== 'undefined') 
-      ? JSON.parse(storedUser) 
+    const parsedUser = (storedUser && storedUser !== 'undefined')
+      ? JSON.parse(storedUser)
       : null;
 
     return {
