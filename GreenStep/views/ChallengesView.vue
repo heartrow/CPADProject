@@ -51,6 +51,25 @@ const handleChallengeAction = async (challenge, action) => {
   }
 }
 
+const deleteChallenge = async (challengeId, challengeTitle) => {
+  // 1. Trigger the native browser confirmation popup
+  const isConfirmed = window.confirm(`⚠️ Are you sure you want to completely delete the challenge: "${challengeTitle}"?\n\nThis will remove all user progress and cannot be undone.`);
+
+  if (!isConfirmed) return; // Stop if they click "Cancel"
+
+  try {
+    // 2. Send the DELETE request to the backend
+    await api.delete(`/api/challenges/${challengeId}`);
+
+    // 3. Instantly remove it from the screen without needing to refresh the page
+    challenges.value = challenges.value.filter(c => c.id !== challengeId);
+
+  } catch (error) {
+    console.error("Failed to delete challenge:", error);
+    alert(error.response?.data?.error || "Failed to delete the challenge.");
+  }
+}
+
 const closeModal = () => {
   isCreateModalOpen.value = false
   isModalOpen.value = false
@@ -114,6 +133,14 @@ onMounted(async () => {
           <div v-for="challenge in challenges" :key="challenge.id" class="card challenge-card">
 
             <h3 class="challenge-title">{{ challenge.title }}</h3>
+            <button
+                v-if="authStore.user?.role === 'admin' || authStore.user?.role === 'leader'"
+                class="btn-delete"
+                @click="deleteChallenge(challenge.id, challenge.title)"
+                title="Delete Challenge"
+              >
+                🗑️
+              </button>
             <p class="challenge-desc">{{ challenge.desc }}</p>
 
             <div class="progress-section">
@@ -332,6 +359,30 @@ onMounted(async () => {
 
 .btn-create-challenge:hover {
   background-color: #4a5e29;
+}
+
+.card-top-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.btn-delete {
+  background: #d9534f;
+  border: 1px solid #ffcccc;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #d9534f;
+  transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+  background-color: #ffeaea;
+  border-color: #d9534f;
+  transform: scale(1.05);
 }
 
 /* --- Responsive Layout --- */
