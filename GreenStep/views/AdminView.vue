@@ -1,12 +1,14 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import SideBar from '@/components/SideBar.vue'
+import api from '@/api/client'
 
 // ── State Management ─────────────────────────────────────────
 const activeTab = ref('challenges')
 const isSubmitting = ref(false)
 const statusMessage = ref({ type: '', text: '' })
+const badgesList = ref([])
 
 // ── Form Models ──────────────────────────────────────────────
 const challengeForm = ref({
@@ -18,9 +20,27 @@ const challengeForm = ref({
 
 const badgeForm = ref({
   name: '',
-  description: '',
   requirementType: 'activity_count',
-  requirementValue: ''
+  requirementValue: '',
+  category: 'meal' // only used by the streak_days criteria type
+})
+
+// Mirrors BadgeController::buildDescription() on the backend EXACTLY — including
+// the ucfirst() on category — so the preview never drifts from the saved badge.
+const badgeDescriptionPreview = computed(() => {
+  const value = badgeForm.value.requirementValue || '___'
+  const category = badgeForm.value.category || 'meal'
+  const categoryCapitalized = category.charAt(0).toUpperCase() + category.slice(1)
+  switch (badgeForm.value.requirementType) {
+    case 'activity_count':
+      return `Log ${value} eco-activity.`
+    case 'carbon_saved':
+      return `Save a total of ${value} kg of CO₂ through your activities.`
+    case 'streak_days':
+      return `Log ${categoryCapitalized} activities for ${value} days in a row.`
+    default:
+      return 'Complete the required eco-actions to unlock this badge.'
+  }
 })
 
 const activityForm = ref({
@@ -49,19 +69,47 @@ async function handleCreateChallenge() {
   }
 }
 
+// Maps the form's requirementType to the criteria_type the backend understands,
+// and packs the right fields into the request body for that type.
+function buildBadgePayload(form) {
+  switch (form.requirementType) {
+    case 'activity_count':
+      return { name: form.name, criteria_type: 'total_logs', threshold: form.requirementValue }
+    case 'carbon_saved':
+      return { name: form.name, criteria_type: 'total_co2_saved_kg', threshold: form.requirementValue }
+    case 'streak_days':
+      // activity_type_id isn't collected by this simplified form yet — defaulting to 0
+      // will fail backend validation, so this case needs its own input before going live.
+      return { name: form.name, criteria_type: 'activity_category_streak', days: form.requirementValue, category: form.category, activity_type_id: form.activityTypeId ?? 0 }
+    default:
+      return { name: form.name, criteria_type: form.requirementType, threshold: form.requirementValue }
+  }
+}
+
+async function fetchBadges() {
+  try {
+    const res = await api.get('/api/badges')
+    badgesList.value = res.data.data
+  } catch (err) {
+    setStatus('error', err.response?.data?.error ?? 'Failed to load badges.')
+  }
+}
+
 async function handleCreateBadge() {
   isSubmitting.value = true
   try {
-    // API client execution goes here: await api.post('/api/admin/badges', badgeForm.value)
-    console.log('Creating Badge:', badgeForm.value)
+    await api.post('/api/badges', buildBadgePayload(badgeForm.value))
     setStatus('success', '🏅 New system achievement badge created successfully!')
-    badgeForm.value = { name: '', description: '', requirementType: 'activity_count', requirementValue: '' }
+    badgeForm.value = { name: '', requirementType: 'activity_count', requirementValue: '', category: 'meal' }
+    await fetchBadges() // refresh the table so the new badge shows up immediately
   } catch (err) {
-    setStatus('error', err.response?.data?.error ?? 'Failed to create badge.')
+    setStatus('error', err.response?.data?.errors ? JSON.stringify(err.response.data.errors) : (err.response?.data?.error ?? 'Failed to create badge.'))
   } finally {
     isSubmitting.value = false
   }
 }
+
+onMounted(fetchBadges)
 
 async function handleCreateActivity() {
   isSubmitting.value = true
@@ -179,8 +227,8 @@ async function handleCreateActivity() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="badge in badgesList" :key="badge.id">
-                      <td>
+                    <tr v-for="badge in badgesList" :key="badge.badge_id">
+                      <td data-label="Badge">
                         <div class="badge-identity">
                           <span class="badge-icon">🏅</span>
                           <div>
@@ -189,8 +237,8 @@ async function handleCreateActivity() {
                           </div>
                         </div>
                       </td>
-                      <td><span class="badge-tag">{{ getRequirementLabel(badge.requirementType) }}</span></td>
-                      <td><strong style="color: var(--primary);">{{ badge.requirementValue }}</strong></td>
+                      <td data-label="Status"><span class="badge-tag">{{ badge.unlocked ? 'Unlocked' : 'Locked' }}</span></td>
+                      <td data-label="Earned"><strong style="color: var(--primary);">{{ badge.earned_at ?? '—' }}</strong></td>
                     </tr>
                   </tbody>
                 </table>
@@ -206,8 +254,8 @@ async function handleCreateActivity() {
               </div>
 
               <div class="input-group">
-                <label>Requirements Summary</label>
-                <textarea v-model="badgeForm.description" class="admin-input field-textarea" required placeholder="Describe target milestone conditions..."></textarea>
+                <label>Generated Description Preview</label>
+                <p class="generated-description-preview">{{ badgeDescriptionPreview }}</p>
               </div>
 
               <div class="input-group">
@@ -216,6 +264,16 @@ async function handleCreateActivity() {
                   <option value="activity_count">Total System Submissions</option>
                   <option value="carbon_saved">Aggregated Carbon Restitution (kg)</option>
                   <option value="streak_days">Consecutive Daily Active Tracking</option>
+                </select>
+              </div>
+
+              <div class="input-group" v-if="badgeForm.requirementType === 'streak_days'">
+                <label>Activity Category</label>
+                <select v-model="badgeForm.category" class="admin-input">
+                  <option value="meal">Meal</option>
+                  <option value="transport">Transport</option>
+                  <option value="energy">Energy</option>
+                  <option value="waste">Waste</option>
                 </select>
               </div>
 
@@ -418,6 +476,18 @@ async function handleCreateActivity() {
   resize: vertical;
 }
 
+.generated-description-preview {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background-color: var(--bg-body);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .form-row-split {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -525,28 +595,145 @@ async function handleCreateActivity() {
   color: #c5221f;
 }
 
-/* --- Responsive Layout Breaks --- */
+/* --- Badge Management Table --- */
+.badge-management-layout {
+  display: contents;
+}
+
+.inner-list-card {
+  padding: 2rem;
+}
+
+.empty-state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.badge-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.badge-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.badge-table thead th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.badge-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.2s;
+}
+
+.badge-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.badge-table tbody tr:hover {
+  background-color: var(--bg-body);
+}
+
+.badge-table td {
+  padding: 0.85rem 1rem;
+  vertical-align: middle;
+  color: var(--text-main);
+}
+
+.badge-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.badge-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background-color: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: 50%;
+}
+
+.badge-identity strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 0.95rem;
+}
+
+.badge-table-desc {
+  margin: 0.15rem 0 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.badge-tag {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.side-form-card {
+  height: fit-content;
+}
+
+/* --- Responsive: badges --- */
 @media (max-width: 1024px) {
-  .admin-panel-grid {
-    grid-template-columns: 1fr;
+  .badge-table-desc {
+    display: none;
   }
 }
 
-@media (max-width: 768px) {
-  .admin-main {
-    margin-left: 0;
-    padding: 1rem;
-    padding-bottom: 90px;
+@media (max-width: 600px) {
+  .badge-table thead {
+    display: none;
   }
-  .main-admin-card {
-    padding: 1.5rem;
+  .badge-table, .badge-table tbody, .badge-table tr, .badge-table td {
+    display: block;
+    width: 100%;
   }
-  .tab-navigation {
-    flex-direction: column;
-    gap: 0.5rem;
+  .badge-table tr {
+    padding: 0.75rem 1rem;
   }
-  .form-row-split {
-    grid-template-columns: 1fr;
+  .badge-table td {
+    padding: 0.25rem 0;
+    border: none;
+  }
+  .badge-table td:not(:first-child)::before {
+    content: attr(data-label);
+    display: inline-block;
+    width: 110px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
   }
 }
 </style>

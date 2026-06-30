@@ -18,6 +18,7 @@ final class BadgeRepository
                     b.name,
                     b.criteria_json,
                     b.image_url,
+                    b.icon,
                     ub.earned_at,
                     IF(ub.badge_id IS NOT NULL, 1, 0) AS unlocked
                 FROM badges b
@@ -123,16 +124,17 @@ final class BadgeRepository
      * Create a new badge definition (admin only).
      * Returns the new badge's auto-incremented ID.
      */
-    public function create(string $name, string $criteriaJson, string $imageUrl): int
+    public function create(string $name, string $criteriaJson, string $imageUrl, string $icon): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO badges (name, criteria_json, image_url)
-             VALUES (:name, :criteria_json, :image_url)'
+            'INSERT INTO badges (name, criteria_json, image_url, icon)
+             VALUES (:name, :criteria_json, :image_url, :icon)'
         );
         $stmt->execute([
             ':name'          => trim($name),
             ':criteria_json' => $criteriaJson,
             ':image_url'     => trim($imageUrl),
+            ':icon'          => trim($icon),
         ]);
         return (int) $this->pdo->lastInsertId();
     }
