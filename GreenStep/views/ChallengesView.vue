@@ -1,55 +1,78 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import SideBar from '@/components/SideBar.vue'
 import LeaderboardModal from '@/components/modals/LeaderboardModal.vue'
+import CreateChallengeModal from '@/components/modals/CreateChallengeModal.vue'
+import api from '@/api/client.js'
+import { useAuth } from '@/stores/auth'
 
-const challenges = ref([
-  {
-    id: 1,
-    title: '🌍 Local Campus Energy Reduction',
-    desc: 'Reduce collective electricity consumption across the residential blocks by 1,000 kWh.',
-    currentProgress: 650,
-    targetGoal: 1000,
-    unit: 'kWh',
-    actionText: 'View Leaderboard',
-    isSecondary: false
-  },
-  {
-    id: 2,
-    title: '🚴 Zero-Emission Commute Week',
-    desc: 'Log 500 km of collective walking or cycling instead of using petrol transport.',
-    currentProgress: 100,
-    targetGoal: 500,
-    unit: 'km',
-    actionText: 'Leave Challenge',
-    isSecondary: true
-  }
-])
+const challenges = ref([])
+const isLoading = ref(true)
+const errorMessage = ref('')
+const authStore = useAuth()
 
-const calculatePercentage = (current, target) => {
-  return Math.round((current / target) * 100);
-}
+// --- Modal State ---
 const isModalOpen = ref(false)
+const isCreateModalOpen = ref(false)
 const selectedChallengeTitle = ref('')
 const selectedChallengeUnit = ref('')
 
-const handleChallengeAction = (challenge) => {
-  if (challenge.actionText === 'View Leaderboard') {
+const calculatePercentage = (current, target) => {
+  if (!target) return 0;
+  return Math.round((current / target) * 100);
+}
+
+const handleChallengeAction = async (challenge, action) => {
+  if (action === 'leaderboard') {
     selectedChallengeTitle.value = challenge.title
     selectedChallengeUnit.value = challenge.unit
     isModalOpen.value = true
-  } else {
-    // Handle other actions (e.g., Leave Challenge)
-    console.log(`Action clicked for: ${challenge.title}`)
+  }
+  else if (action === 'join') {
+    try {
+      // 2. Use Axios to POST
+      await api.post('/api/challenges/join', { challenge_id: challenge.id });
+      challenge.hasUserJoined = true;
+    } catch (error) {
+      console.error("Failed to join:", error);
+    }
+  }
+  else if (action === 'leave') {
+    try {
+      // 3. Use Axios to POST (leave)
+      await api.post('/api/challenges/leave', { challenge_id: challenge.id });
+      challenge.hasUserJoined = false;
+    } catch (error) {
+      console.error("Failed to leave:", error);
+    }
   }
 }
 
 const closeModal = () => {
+  isCreateModalOpen.value = false
   isModalOpen.value = false
   selectedChallengeTitle.value = ''
   selectedChallengeUnit.value = ''
 }
+
+// --- Fetch Data on Load ---
+onMounted(async () => {
+  try {
+    console.log("RAW USER DATA:", JSON.parse(JSON.stringify(authStore.user)));
+// 4. Use Axios to GET data
+    const response = await api.get('/api/challenges')
+
+    // Axios automatically parses JSON into `response.data`
+    challenges.value = response.data
+
+  } catch (error) {
+    console.error("API Fetch Failed:", error)
+    errorMessage.value = "Failed to load challenges from the server. Please check your API connection."
+  } finally {
+    isLoading.value = false
+  }
+})
 
 </script>
 
@@ -57,16 +80,34 @@ const closeModal = () => {
   <TopBar />
   <SideBar />
 
-  <main class="challenges-main">
+<main class="challenges-main">
     <div class="view-section active">
 
       <div class="card outer-card">
-        <div class="header-section">
-          <h2 class="card-title">Active Community Challenges</h2>
-          <p class="subtitle">Work together with your group to hit collective reduction targets.</p>
+        <div class="header-section flex-header">
+          <div>
+            <h2 class="card-title">Active Community Challenges</h2>
+            <p class="subtitle">Work together with your group to hit collective reduction targets.</p>
+          </div>
+
+          <button
+            v-if="authStore.user?.role === 'admin' || authStore.user?.role === 'leader'"
+            class="btn-create-challenge"
+            @click="isCreateModalOpen = true"
+          >
+            ➕ New Challenge
+          </button>
         </div>
 
-        <div class="challenges-grid">
+        <div v-if="isLoading" class="loading-state">
+          Loading challenges...
+        </div>
+
+        <div v-else-if="errorMessage" class="status-state error">
+          {{ errorMessage }}
+        </div>
+
+        <div v-else class="challenges-grid">
 
           <div v-for="challenge in challenges" :key="challenge.id" class="card challenge-card">
 
@@ -87,13 +128,23 @@ const closeModal = () => {
               </p>
             </div>
 
-            <button
-              class="btn-action"
-              :class="{ 'secondary': challenge.isSecondary }"
-              @click="handleChallengeAction(challenge)"
-              >
-              {{ challenge.actionText }}
-            </button>
+            <div class="action-buttons">
+              <template v-if="challenge.hasUserJoined">
+                <button class="btn-action" @click="handleChallengeAction(challenge, 'leaderboard')">
+                  View Leaderboard
+                </button>
+                <button class="btn-action secondary" @click="handleChallengeAction(challenge, 'leave')">
+                  Leave Challenge
+                </button>
+              </template>
+
+              <template v-else>
+                <button class="btn-action primary-join" @click="handleChallengeAction(challenge, 'join')">
+                  Join Challenge
+                </button>
+              </template>
+            </div>
+
           </div>
         </div>
       </div>
@@ -104,6 +155,12 @@ const closeModal = () => {
       :challengeTitle="selectedChallengeTitle"
       :unit="selectedChallengeUnit"
       @close="closeModal"
+    />
+
+    <CreateChallengeModal
+      :show="isCreateModalOpen"
+      @close="isCreateModalOpen = false"
+      @challengeCreated="fetchChallenges"
     />
 
   </main>
@@ -249,6 +306,29 @@ const closeModal = () => {
   background-color: #ffeaea;
   color: #d9534f;
   border-color: #d9534f;
+}
+
+.flex-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-create-challenge {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-create-challenge:hover {
+  background-color: #4a5e29;
 }
 
 /* --- Responsive Layout --- */

@@ -50,7 +50,7 @@ const generateDateRange = (daysCount) => {
   for (let i = daysCount - 1; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    dates.push(d.toLocaleDateString('sv')) 
+    dates.push(d.toLocaleDateString('sv'))
   }
   return dates
 }
@@ -99,7 +99,7 @@ const calendarDays = computed(() => {
 })
 
 const chartData = computed(() => ({
-  labels: chartTimeline.value.map(date => date.slice(5)), 
+  labels: chartTimeline.value.map(date => date.slice(5)),
   datasets: [
     {
       label: 'CO2 Footprint',
@@ -176,7 +176,7 @@ const canvasBackgroundColorPlugin = {
   <main class="home-main">
     <div id="view-dashboard" class="view-section active">
       <div class="dashboard-grid">
-        
+
         <div class="col-left">
           <div class="card" style="flex: 2">
             <h2 class="card-title">Carbon Footprint Performance Trend</h2>

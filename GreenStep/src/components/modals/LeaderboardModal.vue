@@ -1,22 +1,45 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import api from '@/api/client.js'
+import { useAuth } from '@/stores/auth'
 
 const props = defineProps({
   show: Boolean,
+  challengeId: [String, Number],
   challengeTitle: String,
   unit: String
 })
 
 const emit = defineEmits(['close'])
 
-// Dummy data for the leaderboard participants
-const leaderboardData = ref([
-  { rank: 1, name: 'Azri', contribution: 120 },
-  { rank: 2, name: 'Sarah M.', contribution: 95 },
-  { rank: 3, name: 'Ali K.', contribution: 80 },
-  { rank: 4, name: 'Mei Ling', contribution: 60 },
-  { rank: 5, name: 'Muthu', contribution: 45 },
-])
+const auth = useAuth()
+const leaderboardData = ref([])
+const isLoading = ref(false)
+const error = ref(null)
+
+async function fetchLeaderboard() {
+  if (!props.challengeId) return
+  isLoading.value = true
+  error.value = null
+  try {
+    const res = await api.get(`/api/challenges/${props.challengeId}/leaderboard`)
+    leaderboardData.value = res.data
+  } catch (err) {
+    error.value = 'Failed to load leaderboard. Please try again.'
+    leaderboardData.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Re-fetch whenever the modal is opened for a (possibly different) challenge.
+watch(
+  () => [props.show, props.challengeId],
+  ([show]) => {
+    if (show) fetchLeaderboard()
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -31,7 +54,13 @@ const leaderboardData = ref([
       <div class="modal-body">
         <p class="modal-subtitle">{{ challengeTitle }}</p>
 
-        <table class="leaderboard-table">
+        <div v-if="isLoading" class="state-message">Loading leaderboard…</div>
+        <div v-else-if="error" class="state-message state-error">{{ error }}</div>
+        <div v-else-if="leaderboardData.length === 0" class="state-message">
+          No contributions yet. Be the first!
+        </div>
+
+        <table v-else class="leaderboard-table">
           <thead>
             <tr>
               <th>Rank</th>
@@ -40,10 +69,9 @@ const leaderboardData = ref([
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in leaderboardData" :key="user.rank" :class="{ 'highlight': user.name === 'Azri' }">
+            <tr v-for="user in leaderboardData" :key="user.rank" :class="{ 'highlight': user.name === auth.user?.name }">
               <td class="rank-col">#{{ user.rank }}</td>
               <td class="name-col">{{ user.name }}</td>
-              <!-- Dynamically injecting the unit here -->
               <td class="score-col align-right">{{ user.contribution }} <span class="unit-text">{{ unit }}</span></td>
             </tr>
           </tbody>
@@ -61,12 +89,12 @@ const leaderboardData = ref([
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100;
-  backdrop-filter: blur(2px);
+  z-index: 9999;
+  backdrop-filter: blur(4px);
 }
 
 .modal-card {
@@ -175,5 +203,16 @@ const leaderboardData = ref([
   font-size: 0.8rem;
   color: var(--text-muted, #666);
   font-weight: normal;
+}
+
+.state-message {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-muted, #666);
+  font-weight: 500;
+}
+
+.state-error {
+  color: #c0392b;
 }
 </style>
