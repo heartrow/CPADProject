@@ -15,6 +15,7 @@ const authStore = useAuth()
 // --- Modal State ---
 const isModalOpen = ref(false)
 const isCreateModalOpen = ref(false)
+const selectedChallengeId = ref(null)
 const selectedChallengeTitle = ref('')
 const selectedChallengeUnit = ref('')
 
@@ -25,6 +26,7 @@ const calculatePercentage = (current, target) => {
 
 const handleChallengeAction = async (challenge, action) => {
   if (action === 'leaderboard') {
+    selectedChallengeId.value = challenge.id
     selectedChallengeTitle.value = challenge.title
     selectedChallengeUnit.value = challenge.unit
     isModalOpen.value = true
@@ -52,6 +54,7 @@ const handleChallengeAction = async (challenge, action) => {
 const closeModal = () => {
   isCreateModalOpen.value = false
   isModalOpen.value = false
+  selectedChallengeId.value = null
   selectedChallengeTitle.value = ''
   selectedChallengeUnit.value = ''
 }
@@ -59,7 +62,6 @@ const closeModal = () => {
 // --- Fetch Data on Load ---
 onMounted(async () => {
   try {
-    console.log("RAW USER DATA:", JSON.parse(JSON.stringify(authStore.user)));
 // 4. Use Axios to GET data
     const response = await api.get('/api/challenges')
 
@@ -152,6 +154,7 @@ onMounted(async () => {
 
     <LeaderboardModal
       :show="isModalOpen"
+      :challengeId="selectedChallengeId"
       :challengeTitle="selectedChallengeTitle"
       :unit="selectedChallengeUnit"
       @close="closeModal"

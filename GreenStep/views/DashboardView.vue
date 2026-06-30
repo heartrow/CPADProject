@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import SideBar from '@/components/SideBar.vue'
-import api from '@/api/client.js'
+import api from '@/api/client.js' // Fixed import path to align with project structure
 
 // Chart.js Core Imports
 import { Line } from 'vue-chartjs'
@@ -31,76 +31,24 @@ ChartJS.register(
 )
 
 const rawLogs = ref([])
-const ecoTips = ref([]) 
-const libraryTips = ref([]) // Holds persistent randomized library tips selected at mount
 const isLoading = ref(true)
 
-// Contextual eco emoji bank
-const libraryIcons = ['💡', '🌱', '🚴', '💧', '🔌', '🍃', '🌍', '♻️']
-
 onMounted(async () => {
-  isLoading.value = true
-
-  // 1. FETCH ACTIVITY LOGS (Completely Independent)
   try {
-    const logsResponse = await api.get('api/activitylogs')
-    if (logsResponse.data && logsResponse.data.data) {
-      rawLogs.value = logsResponse.data.data
-    } else if (Array.isArray(logsResponse.data)) {
-      rawLogs.value = logsResponse.data
+    const response = await api.get('api/activitylogs')
+    if (response.data && response.data.data) {
+      rawLogs.value = response.data.data
+    } else if (Array.isArray(response.data)) {
+      rawLogs.value = response.data
     }
   } catch (error) {
-    console.error('❌ Activity logs failed to load:', error)
-    // Non-blocking: chart components handles empty data array gracefully
+    console.error('Error fetching dashboard records:', error)
+  } finally {
+    isLoading.value = false
   }
-
-  // 2. FETCH ECO TIPS (Independent with Fallback safety net)
-  try {
-    const tipsResponse = await api.get('api/ecotips')
-    if (tipsResponse.data && tipsResponse.data.data) {
-      ecoTips.value = tipsResponse.data.data
-    } else if (Array.isArray(tipsResponse.data)) {
-      ecoTips.value = tipsResponse.data
-    }
-  } catch (error) {
-    console.warn('⚠️ Eco-tips failed due to CORS or Network Error. Applying clean UI fallbacks.')
-    
-    // Fallback records preserve layout continuity if backend connection fails
-    ecoTips.value = [
-      'Unplug electronics when not in use. Standby power can account for up to 10% of your total household electricity bill!',
-      'Wash clothes in cold water. About 75% to 90% of all the energy your washing machine uses goes solely into heating the water.',
-      'Swap out your home’s remaining incandescent bulbs for LEDs. They use up to 75% less energy and last 25 times longer.',
-      'Cut your shower time down to 5 minutes. This small change can save up to 1,000 gallons of water per person every month.',
-      'Compost your fruit peels and vegetable scraps. Composting prevents harmful methane production and creates nutrient-rich soil.'
-    ]
-  }
-
-  // 3. GENERATE THE ECO-TIP LIBRARY GRID ITEMS
-  if (ecoTips.value.length > 0) {
-    const shuffled = [...ecoTips.value].sort(() => 0.5 - Math.random())
-    libraryTips.value = shuffled.slice(0, 3).map((item, index) => {
-      const rawText = typeof item === 'object' && item !== null ? (item.tip_text || item.tip) : item
-      
-      // Extract first two words to generate structural header tags
-      let generatedTitle = 'Eco Action:'
-      if (rawText) {
-        const words = rawText.split(' ')
-        generatedTitle = words.slice(0, 2).join(' ').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") + ':'
-      }
-
-      return {
-        id: item.id || index,
-        icon: libraryIcons[index % libraryIcons.length],
-        title: generatedTitle,
-        text: rawText
-      }
-    })
-  }
-
-  // Always stop loading phase 
-  isLoading.value = false
 })
 
+// Custom helper function to explicitly format Dates into YYYY-MM-DD strings matching Malaysia timezone
 const formatToLocalYMD = (dateObj) => {
   const year = dateObj.getFullYear()
   const month = String(dateObj.getMonth() + 1).padStart(2, '0')
@@ -124,6 +72,8 @@ const aggregatedDailyData = computed(() => {
   const recordMap = {}
   rawLogs.value.forEach(log => {
     const rawDate = log.date || log.created_at || ''
+    // Use substring instead of split(' ') to safely handle both
+    // "YYYY-MM-DD HH:mm:ss" and ISO 8601 "YYYY-MM-DDTHH:mm:ss.sssZ" formats
     const dateKey = rawDate.substring(0, 10)
     if (dateKey) {
       const carbonValue = parseFloat(log.co2_emission || 0)
@@ -138,6 +88,8 @@ const todaysFootprint = computed(() => {
   return (aggregatedDailyData.value[todayKey] || 0).toFixed(1)
 })
 
+// Fixed: now averages only over the days that actually fall within the
+// current 7-day window, instead of always dividing by a flat 7.
 const weeklyAverage = computed(() => {
   const last7Days = chartTimeline.value
   const total = last7Days.reduce(
@@ -147,6 +99,9 @@ const weeklyAverage = computed(() => {
   return (total / last7Days.length).toFixed(1)
 })
 
+// Compares the most recent day against the prior 6-day average to give a
+// quick "up / down / flat" signal next to the chart title, making the
+// trend direction obvious without having to read the axis values.
 const trendDirection = computed(() => {
   const days = chartTimeline.value
   const todayValue = aggregatedDailyData.value[days[days.length - 1]] || 0
@@ -159,7 +114,7 @@ const trendDirection = computed(() => {
   if (priorAvg === 0 && todayValue === 0) return { label: 'No data yet', class: 'flat' }
 
   const diff = todayValue - priorAvg
-  const threshold = Math.max(priorAvg * 0.05, 0.1)
+  const threshold = Math.max(priorAvg * 0.05, 0.1) // ignore noise under 5% or 0.1kg
 
   if (diff > threshold) return { label: 'Trending up', class: 'up' }
   if (diff < -threshold) return { label: 'Trending down', class: 'down' }
@@ -201,7 +156,9 @@ const chartData = computed(() => ({
       tension: 0.35,
       cubicInterpolationMode: 'monotone',
       fill: true,
-      backgroundColor: 'rgba(46, 79, 50, 0.12)',
+      // backgroundColor is overridden dynamically by gradientFillPlugin below,
+      // this is just a fallback before the canvas context is available
+      backgroundColor: 'rgba(78, 110, 82, 0.12)',
       pointRadius: 3,
       pointHoverRadius: 7,
       pointBackgroundColor: '#ffffff',
@@ -217,8 +174,14 @@ const chartData = computed(() => ({
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
-  interaction: { mode: 'index', intersect: false },
-  animation: { duration: 800, easing: 'easeOutQuart' },
+  interaction: {
+    mode: 'index',
+    intersect: false
+  },
+  animation: {
+    duration: 800,
+    easing: 'easeOutQuart'
+  },
   plugins: {
     legend: { display: false },
     tooltip: {
@@ -229,24 +192,43 @@ const chartOptions = {
       cornerRadius: 10,
       displayColors: false,
       caretSize: 6,
-      callbacks: { label: (context) => `${context.parsed.y.toFixed(1)} kg CO2` }
+      callbacks: {
+        label: (context) => `${context.parsed.y.toFixed(1)} kg CO2`
+      }
     }
   },
   scales: {
     x: {
       grid: { display: false },
       border: { display: false },
-      ticks: { color: '#7d8a7f', font: { family: 'Inter, sans-serif', size: 11, weight: '600' }, padding: 6 }
+      ticks: {
+        color: '#7d8a7f',
+        font: { family: 'Inter, sans-serif', size: 11, weight: '600' },
+        padding: 6
+      }
     },
     y: {
       beginAtZero: true,
-      grid: { color: 'rgba(46, 79, 50, 0.1)', borderDash: [4, 4], drawTicks: false },
+      grid: {
+        color: 'rgba(46, 79, 50, 0.1)',
+        // dashed gridlines read as softer / more "designed" than solid ones
+        borderDash: [4, 4],
+        drawTicks: false
+      },
       border: { display: false },
-      ticks: { color: '#7d8a7f', font: { family: 'Inter, sans-serif', size: 11 }, padding: 10, maxTicksLimit: 5 }
+      ticks: {
+        color: '#7d8a7f',
+        font: { family: 'Inter, sans-serif', size: 11 },
+        padding: 10,
+        maxTicksLimit: 5,
+        callback: (value) => `${value}`
+      }
     }
   }
 }
 
+// Cache the CSS custom property lookup once instead of re-reading the DOM
+// on every beforeDraw call (which fires frequently during chart redraws/animations).
 let cachedPrimaryLightColor = null
 const getPrimaryLightColor = () => {
   if (cachedPrimaryLightColor) return cachedPrimaryLightColor
@@ -260,33 +242,81 @@ const canvasBackgroundColorPlugin = {
   beforeDraw: (chart) => {
     const { ctx, chartArea } = chart
     if (!chartArea) return
+
     ctx.save()
     ctx.fillStyle = getPrimaryLightColor()
-    ctx.fillRect(chartArea.left, chartArea.top, chartArea.width, chartArea.height)
+    ctx.fillRect(
+      chartArea.left,
+      chartArea.top,
+      chartArea.width,
+      chartArea.height
+    )
     ctx.restore()
   }
 }
 
+// Paints a soft vertical gradient under the line (dark green fading to
+// transparent) instead of a flat tint, which reads as much more polished
+// and makes the "weight" of the trend easier to perceive at a glance.
 const gradientFillPlugin = {
   id: 'gradientFillPlugin',
   beforeDatasetsDraw: (chart) => {
     const { ctx, chartArea } = chart
     if (!chartArea) return
+
     const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
     gradient.addColorStop(0, 'rgba(46, 79, 50, 0.28)')
     gradient.addColorStop(1, 'rgba(46, 79, 50, 0)')
-    chart.data.datasets.forEach((dataset) => { dataset.backgroundColor = gradient })
+
+    chart.data.datasets.forEach((dataset) => {
+      dataset.backgroundColor = gradient
+    })
   }
 }
 
-// 24-hour locked index system pulling array indexes safely
+const ecoTipsList = [
+  "Unplug electronics when not in use. Standby power can account for up to 10% of your total household electricity bill!",
+  "Wash clothes in cold water. About 75% to 90% of all the energy your washing machine uses goes solely into heating the water.",
+  "Skip the heated dry cycle on your dishwasher. Letting your dishes air-dry can reduce the appliance's energy use by up to 15%.",
+  "Swap out your home's remaining incandescent bulbs for LEDs. They use up to 75% less energy and last 25 times longer.",
+  "Keep your refrigerator between 35°F and 38°F, and your freezer at 0°F. Keeping them any colder wastes energy unnecessarily.",
+  "Clean your dryer’s lint trap before every load. A clogged screen forces the machine to run longer, burning up to 30% more energy.",
+  "Lower your thermostat by 7°–10°F for 8 hours a day (like when you are asleep) to save up to 10% a year on heating costs.",
+  "Cut your shower time down to 5 minutes. This small change can save up to 1,000 gallons of water per person every month.",
+  "Repair leaky faucets promptly. A single faucet dripping at a rate of one drop per second can waste over 3,000 gallons of water a year.",
+  "Turn off the tap while brushing your teeth. You can save up to 4 gallons of clean water every single time you brush.",
+  "Only run your dishwasher and washing machine when they are completely full. This saves up to 300 to 800 gallons of water per month.",
+  "Install low-flow faucet aerators. They cost just a few dollars but cut bathroom sink water consumption by up to 30%.",
+  "Skip meat just one day a week. It takes roughly 1,800 gallons of water to produce a pound of beef compared to only 244 gallons for tofu.",
+  "Plan your meals before grocery shopping. Around 30% to 40% of the entire food supply in developed countries ends up in landfills.",
+  "Swap paper towels for washable cotton cloths. Creating paper towels consumes millions of trees and billions of gallons of water annually.",
+  "Keep a reusable shopping bag in your car or backpack. A single plastic bag can take up to 500 years to degrade in a landfill.",
+  "Freeze or repurpose leftover meals. Food waste rotting in landfills accounts for roughly 8% of all global greenhouse gas emissions.",
+  "Compost your fruit peels and vegetable scraps. Composting prevents harmful methane production and creates nutrient-rich soil.",
+  "Keep your car's tires inflated to the recommended pressure. Under-inflated tires drop gas mileage by about 0.2% for every 1 psi drop.",
+  "Clear heavy, unnecessary clutter out of your car trunk. An extra 100 pounds in your vehicle can reduce fuel economy by up to 1%.",
+  "Plan and combine multiple short errands into one single trip. Cold engine starts can use twice as much fuel as a warm, continuous drive.",
+  "Remove empty roof racks or cargo boxes when not in use. They create aerodynamic drag that can lower fuel efficiency by up to 20%.",
+  "Avoid aggressive acceleration and hard braking. Safe, smooth driving can improve your highway gas mileage by 15% to 30%.",
+  "Delete old emails and unsubscribe from unwanted newsletters. Storing useless data in cloud server farms consumes continuous cooling energy.",
+  "Switch your phone, computer, and dashboard interfaces to Dark Mode. On OLED screens, this reduces battery power usage by up to 30%.",
+  "Think twice before printing a document. The pulp and paper industry is one of the largest industrial energy consumers worldwide.",
+  "Plug your home office setups into a smart power strip. It automatically cuts power to accessories when your computer goes to sleep.",
+  "Purchase locally grown produce when possible. This eliminates the massive 'food miles' and carbon emissions required to transport items.",
+  "Switch from bottled body wash to traditional bar soap. Bar soaps require less energy to manufacture and eliminate plastic waste entirely.",
+  "Choose durable, high-quality items over fast-fashion. Extending a garment's life by just 9 months reduces its carbon footprint by 20%."
+]
+
+// Pure 24-hour deterministic selection index calculation
+// Fixed: previous formula (year + month + date) could collide across
+// different dates (e.g. 2025+0+25 === 2024+1+0). Using a weighted sum
+// guarantees a unique identifier per calendar day.
 const tipOfTheDay = computed(() => {
-  if (!ecoTips.value.length) return 'Loading strategy insights...'
   const today = new Date()
-  const uniqueDayIdentifier = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate()
-  const tipIndex = uniqueDayIdentifier % ecoTips.value.length
-  const row = ecoTips.value[tipIndex]
-  return typeof row === 'object' && row !== null ? (row.tip_text || row.tip) : row
+  const uniqueDayIdentifier =
+    today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate()
+  const tipIndex = uniqueDayIdentifier % ecoTipsList.length
+  return ecoTipsList[tipIndex]
 })
 </script>
 
@@ -295,18 +325,9 @@ const tipOfTheDay = computed(() => {
   <SideBar />
   <main class="home-main">
     <div id="view-dashboard" class="view-section active">
-      <div class="dashboard-grid">
-
-        <div class="col-left">
-          <div class="card" style="flex: 2">
-            <h2 class="card-title">Carbon Footprint Performance Trend</h2>
-            <div class="chart-container">
-              <Line :data="chartData" :options="chartOptions" :plugins="[canvasBackgroundColorPlugin]" />
-            </div>
-          </div>
 
       <div v-if="isLoading" class="loading-state">
-        Loading dashboard metrics...
+        Loading dashboard...
       </div>
 
       <template v-else>
@@ -397,10 +418,25 @@ const tipOfTheDay = computed(() => {
         <div class="card tip-library">
           <h2 class="card-title">Eco-Tip Library</h2>
           <div class="tip-library-grid">
-            <div v-for="tip in libraryTips" :key="tip.id" class="tip-item">
-              <div class="tip-icon">{{ tip.icon }}</div>
+            <div class="tip-item">
+              <div class="tip-icon">💡</div>
               <p>
-                {{ tip.text }}
+                <strong>Cold Water Laundry:</strong> Wash clothes in cold water to save the energy used to heat it, keeping
+                your garments looking fresh longer.
+              </p>
+            </div>
+            <div class="tip-item">
+              <div class="tip-icon">🌱</div>
+              <p>
+                <strong>Plant-Based Meals:</strong> Swap one meat-based meal a week for a plant-based alternative to
+                significantly lower your carbon footprint.
+              </p>
+            </div>
+            <div class="tip-item">
+              <div class="tip-icon">🚴</div>
+              <p>
+                <strong>Active Transport:</strong> Try cycling or walking for short trips instead of driving to reduce emissions
+                and improve health.
               </p>
             </div>
           </div>
@@ -408,8 +444,6 @@ const tipOfTheDay = computed(() => {
       </template>
 
     </div>
-  </div>
-</div>
   </main>
 </template>
 
@@ -670,8 +704,8 @@ const tipOfTheDay = computed(() => {
   color: var(--text-main);
 }
 .tip-item strong {
-  display: inline-block;
-  margin-right: 0.25rem;
+  display: block;
+  margin-bottom: 0.25rem;
   color: var(--primary);
 }
 

@@ -40,7 +40,7 @@ return function (App $app): void {
     $typeCtrl  = new TypeController(new TypeRepository($pdo));
     $badgeCtrl = new BadgeController(new BadgeRepository($pdo));
     $challengeRepo = new ChallengeRepository($pdo);
-    $logCtrl   = new LogController(new LogRepository($pdo), $badgeCtrl, $challengeRepo);
+    $logCtrl   = new LogController(new LogRepository($pdo), $badgeCtrl);
     $templateCtrl = new TemplateController(new TemplateRepository($pdo));
     $challengeCtrl = new ChallengeController($challengeRepo);
     

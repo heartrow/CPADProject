@@ -137,7 +137,7 @@ const handleSubmit = async () => {
                 :key="type.id"
                 :value="type.id"
               >
-                {{ type.name }} ({{ type.unit }})
+                {{ type.name }}
               </option>
             </select>
             <span v-if="typesError" class="field-error">{{ typesError }}</span>
@@ -186,7 +186,7 @@ const handleSubmit = async () => {
 .modal-card {
   background-color: var(--bg-card, #ffffff);
   width: 90%;
-  max-width: 550px;
+  max-width: 600px;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   overflow: hidden;
