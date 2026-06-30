@@ -1,7 +1,7 @@
-CREATE DATABASE IF NOT EXISTS greenstep_db
+CREATE DATABASE IF NOT EXISTS railway
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; 
 
-USE greenstep_db;
+USE railway;
 
 DROP TABLE IF EXISTS activity_logs; 
 CREATE TABLE activity_logs (
