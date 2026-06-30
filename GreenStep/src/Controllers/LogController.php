@@ -38,7 +38,7 @@ final class LogController
         return $this->json($s, $log); 
     } 
 
-     public function create(Request $r, Response $s): Response 
+    public function create(Request $r, Response $s): Response 
     { 
         $body = (array)$r->getParsedBody(); 
 

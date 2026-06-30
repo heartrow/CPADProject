@@ -25,6 +25,7 @@ final class BadgeController
             'description' => $this->buildDescription(
                                 json_decode($row['criteria_json'], true) ?? []
                              ),
+            'icon'        => $row ['icon'],
             'image_url'   => $row['image_url'],
             'unlocked'    => (bool) $row['unlocked'],
             'earned_at'   => $row['earned_at'],
@@ -69,6 +70,13 @@ final class BadgeController
         $name          = trim($body['name'] ?? '');
         $criteriaType  = trim($body['criteria_type'] ?? '');
         $imageUrl      = trim($body['image_url'] ?? 'https://greenstep.app/badges/default.png');
+        $icon          = trim($body['icon'] ?? '🏅');
+
+        // 'description' is accepted in the request body for compatibility with
+        // clients that send it, but it is intentionally NOT persisted. Badge
+        // descriptions are always derived from criteria_json via buildDescription()
+        // so the text shown to users can never drift from the badge's actual rules.
+        // Any value submitted here is silently discarded.
 
         $errors = [];
         if (mb_strlen($name) < 2)        $errors['name']          = 'min 2 chars';
@@ -122,7 +130,7 @@ final class BadgeController
         }
 
         $criteriaJson = json_encode($criteria, JSON_UNESCAPED_UNICODE);
-        $newId        = $this->badges->create($name, $criteriaJson, $imageUrl);
+        $newId        = $this->badges->create($name, $criteriaJson, $imageUrl, $icon);
         $newBadge     = $this->badges->find($newId);
 
         return $this->json($s, [
@@ -215,7 +223,7 @@ final class BadgeController
     {
         return match ($criteria['type'] ?? '') {
             'total_logs' =>
-                'Log your first eco-activity.',
+                'Log ' . ($criteria['threshold'] ?? 0) . ' eco-activit' . (($criteria['threshold'] ?? 0) > 1 ? 'ies' : 'y'). '.',
 
             'total_co2_saved_kg' =>
                 'Save a total of ' . ($criteria['threshold'] ?? 0) . ' kg of CO₂ through your activities.',
