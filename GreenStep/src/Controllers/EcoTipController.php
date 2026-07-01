@@ -2,13 +2,13 @@
 
 namespace App\Controllers;
 
-use App\Repositories\EcoTipRepository;
+use App\Repositories\EcoTipsRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 final class EcoTipController
 {
-    public function __construct(private EcoTipRepository $ecoTips) {}
+    public function __construct(private EcoTipsRepository $ecoTips) {}
 
     public function index(Request $r, Response $s): Response
     {

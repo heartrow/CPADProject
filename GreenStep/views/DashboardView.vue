@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import SideBar from '@/components/SideBar.vue'
-import api from '@/api/client.js' // Fixed import path to align with project structure
+import api from '@/api/client.js' 
 
 // Chart.js Core Imports
 import { Line } from 'vue-chartjs'
@@ -31,18 +31,50 @@ ChartJS.register(
 )
 
 const rawLogs = ref([])
+const ecoTips = ref([]) 
+const libraryTips = ref([]) // Holds persistent randomized library tips selected at mount
 const isLoading = ref(true)
 
+// Contextual eco emoji bank
+const libraryIcons = ['💡', '🌱', '🚴', '💧', '🔌', '🍃', '🌍', '♻️']
+
 onMounted(async () => {
+  isLoading.value = true
+
+  // 1. FETCH ACTIVITY LOGS 
   try {
-    const response = await api.get('api/activitylogs')
-    if (response.data && response.data.data) {
-      rawLogs.value = response.data.data
-    } else if (Array.isArray(response.data)) {
-      rawLogs.value = response.data
+    const logsResponse = await api.get('api/activitylogs')
+    if (logsResponse.data && logsResponse.data.data) {
+      rawLogs.value = logsResponse.data.data
+    } else if (Array.isArray(logsResponse.data)) {
+      rawLogs.value = logsResponse.data
     }
   } catch (error) {
-    console.error('Error fetching dashboard records:', error)
+    console.error('❌ Activity logs failed to load:', error)
+  }
+
+  // 2. FETCH ECO TIPS FROM DATABASE (Replacing the hardcoded list)
+  try {
+    const tipsResponse = await api.get('api/ecotips')
+    let fetchedTips = []
+    
+    // Unpack data based on the API framework response structure
+    if (tipsResponse.data && tipsResponse.data.data) {
+      fetchedTips = tipsResponse.data.data
+    } else if (Array.isArray(tipsResponse.data)) {
+      fetchedTips = tipsResponse.data
+    }
+
+    if (fetchedTips.length > 0) {
+      // Map across the object properties from EcoTipController to grab 'tipBody' string
+      ecoTips.value = fetchedTips.map(t => t.tipBody || '')
+      
+      // Shuffle and pick 3 persistent items for the dashboard bottom reference grid
+      const shuffled = [...ecoTips.value].sort(() => 0.5 - Math.random())
+      libraryTips.value = shuffled.slice(0, 3)
+    }
+  } catch (error) {
+    console.error('❌ Eco Tips failed to load from database:', error)
   } finally {
     isLoading.value = false
   }
@@ -72,8 +104,6 @@ const aggregatedDailyData = computed(() => {
   const recordMap = {}
   rawLogs.value.forEach(log => {
     const rawDate = log.date || log.created_at || ''
-    // Use substring instead of split(' ') to safely handle both
-    // "YYYY-MM-DD HH:mm:ss" and ISO 8601 "YYYY-MM-DDTHH:mm:ss.sssZ" formats
     const dateKey = rawDate.substring(0, 10)
     if (dateKey) {
       const carbonValue = parseFloat(log.co2_emission || 0)
@@ -88,8 +118,6 @@ const todaysFootprint = computed(() => {
   return (aggregatedDailyData.value[todayKey] || 0).toFixed(1)
 })
 
-// Fixed: now averages only over the days that actually fall within the
-// current 7-day window, instead of always dividing by a flat 7.
 const weeklyAverage = computed(() => {
   const last7Days = chartTimeline.value
   const total = last7Days.reduce(
@@ -99,9 +127,6 @@ const weeklyAverage = computed(() => {
   return (total / last7Days.length).toFixed(1)
 })
 
-// Compares the most recent day against the prior 6-day average to give a
-// quick "up / down / flat" signal next to the chart title, making the
-// trend direction obvious without having to read the axis values.
 const trendDirection = computed(() => {
   const days = chartTimeline.value
   const todayValue = aggregatedDailyData.value[days[days.length - 1]] || 0
@@ -114,7 +139,7 @@ const trendDirection = computed(() => {
   if (priorAvg === 0 && todayValue === 0) return { label: 'No data yet', class: 'flat' }
 
   const diff = todayValue - priorAvg
-  const threshold = Math.max(priorAvg * 0.05, 0.1) // ignore noise under 5% or 0.1kg
+  const threshold = Math.max(priorAvg * 0.05, 0.1) 
 
   if (diff > threshold) return { label: 'Trending up', class: 'up' }
   if (diff < -threshold) return { label: 'Trending down', class: 'down' }
@@ -156,8 +181,6 @@ const chartData = computed(() => ({
       tension: 0.35,
       cubicInterpolationMode: 'monotone',
       fill: true,
-      // backgroundColor is overridden dynamically by gradientFillPlugin below,
-      // this is just a fallback before the canvas context is available
       backgroundColor: 'rgba(78, 110, 82, 0.12)',
       pointRadius: 3,
       pointHoverRadius: 7,
@@ -211,7 +234,6 @@ const chartOptions = {
       beginAtZero: true,
       grid: {
         color: 'rgba(46, 79, 50, 0.1)',
-        // dashed gridlines read as softer / more "designed" than solid ones
         borderDash: [4, 4],
         drawTicks: false
       },
@@ -227,8 +249,6 @@ const chartOptions = {
   }
 }
 
-// Cache the CSS custom property lookup once instead of re-reading the DOM
-// on every beforeDraw call (which fires frequently during chart redraws/animations).
 let cachedPrimaryLightColor = null
 const getPrimaryLightColor = () => {
   if (cachedPrimaryLightColor) return cachedPrimaryLightColor
@@ -255,9 +275,6 @@ const canvasBackgroundColorPlugin = {
   }
 }
 
-// Paints a soft vertical gradient under the line (dark green fading to
-// transparent) instead of a flat tint, which reads as much more polished
-// and makes the "weight" of the trend easier to perceive at a glance.
 const gradientFillPlugin = {
   id: 'gradientFillPlugin',
   beforeDatasetsDraw: (chart) => {
@@ -274,49 +291,13 @@ const gradientFillPlugin = {
   }
 }
 
-const ecoTipsList = [
-  "Unplug electronics when not in use. Standby power can account for up to 10% of your total household electricity bill!",
-  "Wash clothes in cold water. About 75% to 90% of all the energy your washing machine uses goes solely into heating the water.",
-  "Skip the heated dry cycle on your dishwasher. Letting your dishes air-dry can reduce the appliance's energy use by up to 15%.",
-  "Swap out your home's remaining incandescent bulbs for LEDs. They use up to 75% less energy and last 25 times longer.",
-  "Keep your refrigerator between 35°F and 38°F, and your freezer at 0°F. Keeping them any colder wastes energy unnecessarily.",
-  "Clean your dryer’s lint trap before every load. A clogged screen forces the machine to run longer, burning up to 30% more energy.",
-  "Lower your thermostat by 7°–10°F for 8 hours a day (like when you are asleep) to save up to 10% a year on heating costs.",
-  "Cut your shower time down to 5 minutes. This small change can save up to 1,000 gallons of water per person every month.",
-  "Repair leaky faucets promptly. A single faucet dripping at a rate of one drop per second can waste over 3,000 gallons of water a year.",
-  "Turn off the tap while brushing your teeth. You can save up to 4 gallons of clean water every single time you brush.",
-  "Only run your dishwasher and washing machine when they are completely full. This saves up to 300 to 800 gallons of water per month.",
-  "Install low-flow faucet aerators. They cost just a few dollars but cut bathroom sink water consumption by up to 30%.",
-  "Skip meat just one day a week. It takes roughly 1,800 gallons of water to produce a pound of beef compared to only 244 gallons for tofu.",
-  "Plan your meals before grocery shopping. Around 30% to 40% of the entire food supply in developed countries ends up in landfills.",
-  "Swap paper towels for washable cotton cloths. Creating paper towels consumes millions of trees and billions of gallons of water annually.",
-  "Keep a reusable shopping bag in your car or backpack. A single plastic bag can take up to 500 years to degrade in a landfill.",
-  "Freeze or repurpose leftover meals. Food waste rotting in landfills accounts for roughly 8% of all global greenhouse gas emissions.",
-  "Compost your fruit peels and vegetable scraps. Composting prevents harmful methane production and creates nutrient-rich soil.",
-  "Keep your car's tires inflated to the recommended pressure. Under-inflated tires drop gas mileage by about 0.2% for every 1 psi drop.",
-  "Clear heavy, unnecessary clutter out of your car trunk. An extra 100 pounds in your vehicle can reduce fuel economy by up to 1%.",
-  "Plan and combine multiple short errands into one single trip. Cold engine starts can use twice as much fuel as a warm, continuous drive.",
-  "Remove empty roof racks or cargo boxes when not in use. They create aerodynamic drag that can lower fuel efficiency by up to 20%.",
-  "Avoid aggressive acceleration and hard braking. Safe, smooth driving can improve your highway gas mileage by 15% to 30%.",
-  "Delete old emails and unsubscribe from unwanted newsletters. Storing useless data in cloud server farms consumes continuous cooling energy.",
-  "Switch your phone, computer, and dashboard interfaces to Dark Mode. On OLED screens, this reduces battery power usage by up to 30%.",
-  "Think twice before printing a document. The pulp and paper industry is one of the largest industrial energy consumers worldwide.",
-  "Plug your home office setups into a smart power strip. It automatically cuts power to accessories when your computer goes to sleep.",
-  "Purchase locally grown produce when possible. This eliminates the massive 'food miles' and carbon emissions required to transport items.",
-  "Switch from bottled body wash to traditional bar soap. Bar soaps require less energy to manufacture and eliminate plastic waste entirely.",
-  "Choose durable, high-quality items over fast-fashion. Extending a garment's life by just 9 months reduces its carbon footprint by 20%."
-]
-
-// Pure 24-hour deterministic selection index calculation
-// Fixed: previous formula (year + month + date) could collide across
-// different dates (e.g. 2025+0+25 === 2024+1+0). Using a weighted sum
-// guarantees a unique identifier per calendar day.
-const tipOfTheDay = computed(() => {
-  const today = new Date()
-  const uniqueDayIdentifier =
-    today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate()
-  const tipIndex = uniqueDayIdentifier % ecoTipsList.length
-  return ecoTipsList[tipIndex]
+// Generates a dynamic tip of the day rotating daily from the full database records
+const singleEcoTipOfTheDay = computed(() => {
+  if (!ecoTips.value.length) {
+    return 'Small variations in habits produce large eco-contributions over time.'
+  }
+  const dayIndex = new Date().getDate() % ecoTips.value.length
+  return ecoTips.value[dayIndex]
 })
 </script>
 
@@ -360,7 +341,7 @@ const tipOfTheDay = computed(() => {
             <div class="card" style="flex: 0.8; justify-content: center">
               <h2 class="card-title">Eco-Tip of the Day</h2>
               <div class="tip-box">
-                {{ tipOfTheDay }}
+                {{ singleEcoTipOfTheDay }}  
               </div>
             </div>
           </div>
@@ -421,22 +402,19 @@ const tipOfTheDay = computed(() => {
             <div class="tip-item">
               <div class="tip-icon">💡</div>
               <p>
-                <strong>Cold Water Laundry:</strong> Wash clothes in cold water to save the energy used to heat it, keeping
-                your garments looking fresh longer.
+                {{ singleEcoTipOfTheDay }}
               </p>
             </div>
             <div class="tip-item">
               <div class="tip-icon">🌱</div>
               <p>
-                <strong>Plant-Based Meals:</strong> Swap one meat-based meal a week for a plant-based alternative to
-                significantly lower your carbon footprint.
+                {{  libraryTips[0] || 'Plant native species in your garden to support local biodiversity and reduce water usage.' }}
               </p>
             </div>
             <div class="tip-item">
               <div class="tip-icon">🚴</div>
               <p>
-                <strong>Active Transport:</strong> Try cycling or walking for short trips instead of driving to reduce emissions
-                and improve health.
+                {{ libraryTips[1] || 'Use a bicycle or walk for short trips instead of driving to reduce carbon emissions.' }}
               </p>
             </div>
           </div>

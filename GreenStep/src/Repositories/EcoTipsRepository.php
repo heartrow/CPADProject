@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use PDO;
 
-final class EcoTipRepository
+final class EcoTipsRepository
 {
     public function __construct(private PDO $pdo) {}
 

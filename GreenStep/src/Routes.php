@@ -18,7 +18,7 @@ use App\Repositories\UserRepository;
 use App\Repositories\LogRepository;
 use App\Repositories\TemplateRepository;
 use App\Repositories\ChallengeRepository;
-use App\Repositories\EcoTipRepository;
+use App\Repositories\EcoTipsRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
@@ -47,7 +47,7 @@ return function (App $app): void {
     $challengeCtrl = new ChallengeController($challengeRepo);
     
     // Wire up the EcoTip Repository and Controller directly here!
-    $ecoTipCtrl = new EcoTipController(new EcoTipRepository($pdo));
+    $ecoTipCtrl = new EcoTipController(new EcoTipsRepository($pdo));
     
     // Public — no token required.
     $app->get('/', function (Request $r, Response $s) {
@@ -88,8 +88,13 @@ return function (App $app): void {
                     'POST   /api/challenges/join',
                     'POST   /api/challenges/leave',
                     'GET    /api/challenges/{id}/leaderboard',
+                    'DELETE /api/challenges/{id}',
 
-                    'GET    /api/ecotips', // Documented endpoint info
+                    'GET    /api/ecotips',
+                    'GET    /api/ecotips/{id}',
+                    'POST   /api/ecotips',
+                    'PUT    /api/ecotips/{id}',
+                    'DELETE /api/ecotips/{id}',
                 ],
             ],
         ]));
@@ -151,7 +156,13 @@ return function (App $app): void {
     })->add($auth);
 
     // -- Eco Tips routes -------------------------------------------------
-    $app->get('/api/ecotips', [$ecoTipCtrl, 'index'])->add($auth);
+    $app->group('/api/ecotips', function ($g) use ($ecoTipCtrl) {
+        $g->get     ('',        [$ecoTipCtrl, 'index']);
+        $g->get     ('/{id}',   [$ecoTipCtrl, 'show']);
+        $g->post    ('',        [$ecoTipCtrl, 'create']);
+        $g->put     ('/{id}',   [$ecoTipCtrl, 'update']);
+        $g->delete  ('/{id}',   [$ecoTipCtrl, 'delete']);   
+    })->add($auth);
 
     // /auth/me requires a valid JWT.
     $app->get('/auth/me', [$authCtrl, 'me'])->add($auth);
