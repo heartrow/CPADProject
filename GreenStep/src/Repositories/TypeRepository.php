@@ -25,7 +25,7 @@ final class TypeRepository
     }
   
     public function find(int $id): ?array { 
-        $stmt = $this->pdo->prepare('SELECT * FROM activity_type WHERE id = :id'); 
+        $stmt = $this->pdo->prepare('SELECT * FROM activity_types WHERE id = :id'); 
         $stmt->execute([':id' => $id]); 
         $row = $stmt->fetch(); 
         return $row === false ? null : $row; 
@@ -50,15 +50,14 @@ final class TypeRepository
         $sets = [];  
         $args = [':id' => $id];
 
-        foreach (['category', 'name', 'co2_per_unit'] as $field) { 
+        foreach (['category', 'name', 'unit', 'co2_per_unit'] as $field) { // 👈 add 'unit'
             if (array_key_exists($field, $data)) { 
                 $sets[] = "$field=:$field"; 
-                if ($field === 'co2_per_unit')
-                    $args[":$field"] = (float)$data['co2_per_unit'];
-                else
-                    $args[":$field"] = trim($data[$field]);
+                $args[":$field"] = $field === 'co2_per_unit' 
+                    ? (float)$data[$field] 
+                    : trim($data[$field]);
             } 
-        } 
+        }
 
         if (!$sets) return 0; 
 

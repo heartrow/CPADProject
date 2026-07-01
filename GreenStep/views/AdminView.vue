@@ -52,10 +52,12 @@ const badgeDescriptionPreview = computed(() => {
   }
 })
 
+const selectedActivity = ref(null)
 const activityForm = ref({
   name: '',
   category: 'energy',
-  carbonMultiplier: ''
+  unit: '',
+  co2_per_unit: ''
 })
 
 // Picking a different streak category invalidates whatever activity type
@@ -68,20 +70,6 @@ watch(() => badgeForm.value.category, () => {
 const setStatus = (type, text) => {
   statusMessage.value = { type, text }
   setTimeout(() => { statusMessage.value = { type: '', text: '' } }, 4000)
-}
-
-async function handleCreateChallenge() {
-  isSubmitting.value = true
-  try {
-    // API client execution goes here: await api.post('/api/admin/challenges', challengeForm.value)
-    console.log('Creating Challenge:', challengeForm.value)
-    setStatus('success', '🏆 New community challenge published successfully!')
-    challengeForm.value = { title: '', description: '', targetGoal: '', unit: 'kWh' }
-  } catch (err) {
-    setStatus('error', err.response?.data?.error ?? 'Failed to create challenge.')
-  } finally {
-    isSubmitting.value = false
-  }
 }
 
 // Maps the form's requirementType to the criteria_type the backend understands,
@@ -136,19 +124,62 @@ onMounted(() => {
   fetchActivityTypes()
 })
 
+function editActivity(type) {
+  selectedActivity.value = type;
+  activityForm.value = {
+    name: type.name,
+    category: type.category,
+    unit: type.unit,
+    co2_per_unit: type.co2_per_unit
+  }
+}
+
+function cancelEditActivity() {
+  selectedActivity.value = null;
+  activityForm.value = { name: '', category: 'energy', unit: '', co2_per_unit: '' }
+}
+
 async function handleCreateActivity() {
   isSubmitting.value = true
   try {
-    // API client execution goes here: await api.post('/api/admin/activities', activityForm.value)
-    console.log('Creating Activity Type:', activityForm.value)
-    setStatus('success', '🌱 New loggable system activity metrics created!')
-    activityForm.value = { name: '', category: 'energy', carbonMultiplier: '' }
+    const payload = {
+      name: activityForm.value.name,
+      category: activityForm.value.category,
+      unit: activityForm.value.unit,
+      co2_per_unit: Number(activityForm.value.co2_per_unit)
+    }
+
+    console.log(payload)
+    if (selectedActivity.value) {
+      await api.put(`/api/activitytypes/${selectedActivity.value.id}`, payload)
+      setStatus('success', '✅ Activity type updated successfully!')
+    } else {
+      await api.post('/api/activitytypes', payload)
+      setStatus('success', '🌱 New activity type created!')
+    }
+
+    cancelEditActivity()
+    await fetchActivityTypes()
   } catch (err) {
-    setStatus('error', err.response?.data?.error ?? 'Failed to create activity.')
+    setStatus('error', err.response?.data?.errors
+      ? Object.values(err.response.data.errors).join(' • ')
+      : (err.response?.data?.error ?? 'Failed to save activity type.'))
   } finally {
     isSubmitting.value = false
   }
 }
+
+async function handleDeleteActivity(id) {
+  if (!confirm('Delete this activity type?')) return;
+  try {
+    await api.delete(`/api/activitytypes/${id}`)
+    setStatus('success', '🗑️ Activity type deleted.')
+    await fetchActivityTypes()
+  } catch (err) {
+    setStatus('error', err.response?.data?.error ?? 'Failed to delete activity type.')
+  }
+}
+
 </script>
 
 <template>
@@ -289,35 +320,96 @@ async function handleCreateActivity() {
             </form>
           </div>
 
+          <div v-if="activeTab === 'activities'" class="badge-management-layout">
 
-          <form v-if="activeTab === 'activities'" @submit.prevent="handleCreateActivity" class="card dashed-card">
-            <h2 class="card-title">Configure Loggable Activity Class</h2>
+            <!-- List -->
+            <div class="card inner-list-card">
+              <h2 class="card-title">🌱 Activity Types</h2>
 
-            <div class="input-group">
-              <label>Action Entry Metric Label</label>
-              <input v-model="activityForm.name" class="admin-input" type="text" required placeholder="e.g., Intercampus Electric Shuttle Commute" />
+              <div v-if="activityTypesList.length === 0" class="empty-state">
+                No activity types configured yet.
+              </div>
+
+              <div v-else class="badge-table-container">
+                <table class="badge-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Unit</th>
+                      <th>CO₂/Unit (kg)</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="type in activityTypesList" :key="type.id">
+                      <td data-label="Name">
+                        <div class="badge-identity">
+                          <span class="badge-icon">
+                            {{ { transport: '🚗', meal: '🍽️', energy: '⚡', recycle: '♻️' }[type.category] }}
+                          </span>
+                          <strong>{{ type.name }}</strong>
+                        </div>
+                      </td>
+                      <td data-label="Category">
+                        <span class="badge-tag">{{ type.category }}</span>
+                      </td>
+                      <td data-label="Unit">{{ type.unit }}</td>
+                      <td data-label="CO₂/Unit">
+                        <strong style="color: var(--primary);">{{ type.co2_per_unit }} kg</strong>
+                      </td>
+                      <td data-label="Actions">
+                        <div class="row-actions">
+                          <button class="row-btn edit" @click="editActivity(type)">✏️ Edit</button>
+                          <button class="row-btn delete" @click="handleDeleteActivity(type.id)">🗑️</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div class="form-row-split">
+            <!-- Create / Edit Form -->
+            <form @submit.prevent="handleCreateActivity" class="card dashed-card side-form-card">
+              <h2 class="card-title">{{ selectedActivity ? '✏️ Edit Activity Type' : '➕ New Activity Type' }}</h2>
+
               <div class="input-group">
-                <label>Impact Domain Field Group</label>
+                <label>Name</label>
+                <input v-model="activityForm.name" class="admin-input" type="text" required placeholder="e.g., Private Car (Petrol)" />
+              </div>
+
+              <div class="input-group">
+                <label>Category</label>
                 <select v-model="activityForm.category" class="admin-input">
-                  <option value="energy">Power & Electric Energy</option>
-                  <option value="transport">Transit & Smart Commuting</option>
-                  <option value="diet">Sustainably Managed Dietary Selections</option>
-                  <option value="waste">Recycling / Resource Reconstitution</option>
+                  <option value="transport">🚗 Transport</option>
+                  <option value="meal">🍔 Meal</option>
+                  <option value="energy">⚡ Energy</option>
+                  <option value="recycle">♻️ Recycle</option>
                 </select>
               </div>
-              <div class="input-group">
-                <label>Carbon Reduction Weighting Matrix</label>
-                <input v-model.number="activityForm.carbonMultiplier" class="admin-input" type="number" step="0.001" min="0" required placeholder="Reduction factor (kg CO2e saved per unit)" />
-              </div>
-            </div>
 
-            <button type="submit" class="submit-btn" :disabled="isSubmitting">
-              {{ isSubmitting ? 'Injecting Entry Rules...' : 'Append Loggable Class to User Actions' }}
-            </button>
-          </form>
+              <div class="input-group">
+                <label>Unit</label>
+                <input v-model="activityForm.unit" class="admin-input" type="text" required placeholder="e.g., km, kg, hour" />
+              </div>
+
+              <div class="input-group">
+                <label>CO₂ per Unit (kg)</label>
+                <input v-model.number="activityForm.co2_per_unit" class="admin-input" type="number" step="0.0001" min="0" required placeholder="e.g., 0.2100" />
+              </div>
+
+              <div class="form-row-split">
+                <button type="submit" class="submit-btn" :disabled="isSubmitting">
+                  {{ isSubmitting ? 'Saving...' : selectedActivity ? 'Update' : 'Create' }}
+                </button>
+                <button v-if="selectedActivity" type="button" class="cancel-btn" @click="cancelEditActivity">
+                  Cancel
+                </button>
+              </div>
+            </form>
+
+          </div>
 
           <div class="card info-reference-card">
             <h3 class="info-title">System Action Control Matrix</h3>
@@ -351,6 +443,14 @@ async function handleCreateActivity() {
   margin-left: 225px;
 }
 
+/* ── Mobile: no sidebar offset ── */
+@media (max-width: 768px) {
+  .admin-main {
+    margin-left: 0;
+    padding: 1rem;
+  }
+}
+
 .card {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
@@ -363,11 +463,23 @@ async function handleCreateActivity() {
   max-width: 1000px;
 }
 
+@media (max-width: 768px) {
+  .main-admin-card {
+    padding: 1.25rem;
+  }
+}
+
 /* --- Panel Layout System --- */
 .admin-panel-grid {
-  display: grid;
-  grid-template-columns: 1.35fr 0.65fr;
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
+}
+
+@media (max-width: 900px) {
+  .admin-panel-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dashed-card {
@@ -377,12 +489,26 @@ async function handleCreateActivity() {
   padding: 2rem;
 }
 
+@media (max-width: 768px) {
+  .dashed-card {
+    padding: 1.25rem;
+  }
+}
+
 /* --- Workspace Header Display --- */
 .admin-header {
   display: flex;
   align-items: center;
   gap: 1.5rem;
   margin-bottom: 2rem;
+}
+
+@media (max-width: 480px) {
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
 }
 
 .admin-avatar {
@@ -395,6 +521,15 @@ async function handleCreateActivity() {
   align-items: center;
   border-radius: 50%;
   border: 3px solid var(--primary);
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .admin-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+  }
 }
 
 .admin-info h1 {
@@ -410,11 +545,22 @@ async function handleCreateActivity() {
   font-weight: 500;
 }
 
+@media (max-width: 480px) {
+  .admin-info h1 {
+    font-size: 1.35rem;
+  }
+
+  .admin-info p {
+    font-size: 0.9rem;
+  }
+}
+
 /* --- Module Selector Navigation --- */
 .tab-navigation {
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -427,6 +573,15 @@ async function handleCreateActivity() {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+@media (max-width: 480px) {
+  .tab-btn {
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+    flex: 1;
+    text-align: center;
+  }
 }
 
 .tab-btn:hover {
@@ -495,11 +650,23 @@ async function handleCreateActivity() {
   gap: 1rem;
 }
 
+@media (max-width: 480px) {
+  .form-row-split {
+    grid-template-columns: 1fr;
+  }
+}
+
 .card-title {
   font-size: 1.35rem;
   margin-top: 0;
   margin-bottom: 1.5rem;
   color: var(--text-main);
+}
+
+@media (max-width: 480px) {
+  .card-title {
+    font-size: 1.1rem;
+  }
 }
 
 /* --- Core Buttons --- */
@@ -532,6 +699,8 @@ async function handleCreateActivity() {
   border-color: var(--border);
   height: fit-content;
   box-shadow: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .info-title {
@@ -598,11 +767,26 @@ async function handleCreateActivity() {
 
 /* --- Badge Management Table --- */
 .badge-management-layout {
-  display: contents;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .badge-management-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .inner-list-card {
   padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .inner-list-card {
+    padding: 1.25rem;
+  }
 }
 
 .empty-state {
@@ -618,12 +802,14 @@ async function handleCreateActivity() {
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
+  -webkit-overflow-scrolling: touch; /* smooth scroll on iOS */
 }
 
 .badge-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.92rem;
+  min-width: 420px; /* prevents squishing on small screens */
 }
 
 .badge-table thead th {
@@ -705,6 +891,60 @@ async function handleCreateActivity() {
   height: fit-content;
 }
 
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.row-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.row-btn.edit {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.row-btn.edit:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+.row-btn.delete {
+  background-color: #fde8e8;
+  color: #d9534f;
+  border: 1px solid #d9534f;
+}
+
+.row-btn.delete:hover {
+  background-color: #d9534f;
+  color: white;
+}
+
+.cancel-btn {
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.85rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background-color: var(--bg-body);
+}
+
 /* --- Responsive: badges --- */
 @media (max-width: 1024px) {
   .badge-table-desc {
@@ -716,9 +956,15 @@ async function handleCreateActivity() {
   .badge-table thead {
     display: none;
   }
-  .badge-table, .badge-table tbody, .badge-table tr, .badge-table td {
+  .badge-table,
+  .badge-table tbody,
+  .badge-table tr,
+  .badge-table td {
     display: block;
     width: 100%;
+  }
+  .badge-table {
+    min-width: unset; /* allow full width in card mode */
   }
   .badge-table tr {
     padding: 0.75rem 1rem;

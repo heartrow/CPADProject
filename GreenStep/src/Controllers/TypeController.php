@@ -65,6 +65,8 @@ final class TypeController {
         if (!empty($errors)) {
             return $this->json($res, ['errors' => $errors], 400); 
         }
+
+        
   
         $this->types->update($id, $body);  
         $updatedType = $this->types->find($id);
