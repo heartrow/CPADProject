@@ -100,6 +100,36 @@ return recentLogs.value
   .toFixed(2);
 });
 
+const streakDays = computed(() => {
+  if (recentLogs.value.length === 0) return 0
+
+  // Get unique dates from logs, sorted descending
+  const dates = [...new Set(
+    recentLogs.value.map(log => log.created_at.split(' ')[0])
+  )].sort((a, b) => b.localeCompare(a))
+
+  const today = new Date().toISOString().split('T')[0]
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+
+  // Streak must start from today or yesterday
+  if (dates[0] !== today && dates[0] !== yesterday) return 0
+
+  let streak = 1
+  for (let i = 1; i < dates.length; i++) {
+    const prev = new Date(dates[i - 1])
+    const curr = new Date(dates[i])
+    const diff = (prev - curr) / 86400000
+
+    if (diff === 1) {
+      streak++
+    } else {
+      break
+    }
+  }
+
+  return streak
+})
+
 onMounted(() => {
   loadAllData()
 });
@@ -116,6 +146,9 @@ onMounted(() => {
           <div>
             <h2 class="card-title">🕒 Recent Activity</h2>
             <p class="subtitle">Your latest logged entries.</p>
+            <div class="streak-badge">
+            🔥 <span>{{ streakDays }}</span> day streak
+            </div>
           </div>
          <div class="header-right">
            <div class="total-today">
@@ -430,6 +463,25 @@ onMounted(() => {
 .delete-btn:hover {
   background-color: #d9534f;
   color: #fff;
+}
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  background-color: #fff4e5;
+  border: 1px solid #f5a623;
+  color: #b85c00;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.streak-badge span {
+  color: #f5a623;
+  font-size: 0.9rem;
 }
 
 /* Small phones < 480px */

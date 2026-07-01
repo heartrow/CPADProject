@@ -6,6 +6,9 @@ All protected routes require a Bearer token in the `Authorization` header:
 ```
 Authorization: Bearer <token>
 ```
+
+---
+
 ## Endpoint Summary
 
 | Method | Endpoint | Auth | Description |
@@ -13,6 +16,7 @@ Authorization: Bearer <token>
 | POST | /auth/register | Public | Register a new user |
 | POST | /auth/login | Public | Login and get JWT token |
 | GET | /auth/me | Required | Get current user profile |
+| PUT | /auth/profile | Required | Update user profile |
 | GET | /api/activitylogs | Required | Get all logs for current user |
 | GET | /api/activitylogs/{id} | Required | Get a single log |
 | POST | /api/activitylogs | Required | Create a new log |
@@ -23,11 +27,27 @@ Authorization: Bearer <token>
 | POST | /api/activitytypes | Admin only | Create an activity type |
 | PUT | /api/activitytypes/{id} | Admin only | Update an activity type |
 | DELETE | /api/activitytypes/{id} | Admin only | Delete an activity type |
+| GET | /api/badges | Required | Get all badges for current user |
+| POST | /api/badges/check | Required | Check and award eligible badges |
+| POST | /api/badges | Admin only | Create a new badge |
+| DELETE | /api/badges/{id} | Admin only | Delete a badge |
 | GET | /api/usertemplates | Required | Get all templates for current user |
 | GET | /api/usertemplates/{id} | Required | Get a single template |
 | POST | /api/usertemplates | Required | Create a new template |
 | PUT | /api/usertemplates/{id} | Required | Update a template |
 | DELETE | /api/usertemplates/{id} | Required | Delete a template |
+| GET | /api/challenges | Required | Get all challenges |
+| POST | /api/challenges | Admin only | Create a new challenge |
+| POST | /api/challenges/join | Required | Join a challenge |
+| POST | /api/challenges/leave | Required | Leave a challenge |
+| GET | /api/challenges/{id}/leaderboard | Required | Get challenge leaderboard |
+| DELETE | /api/challenges/{id} | Admin only | Delete a challenge |
+| GET | /api/ecotips | Required | Get all eco tips |
+| GET | /api/ecotips/{id} | Required | Get a single eco tip |
+| POST | /api/ecotips | Admin only | Create an eco tip |
+| PUT | /api/ecotips/{id} | Admin only | Update an eco tip |
+| DELETE | /api/ecotips/{id} | Admin only | Delete an eco tip |
+
 ---
 
 ## Authentication
@@ -47,7 +67,7 @@ Register a new user account.
 ```
 
 **Validation:**
-- `name` — required, 2-150 chars
+- `name` — required, 2–150 chars
 - `email` — required, valid email format
 - `password` — required, min 6 chars
 
@@ -137,6 +157,40 @@ Get the currently authenticated user's profile.
 
 ---
 
+### PUT /auth/profile
+Update the authenticated user's profile.
+
+**Auth:** Required
+
+**Request Body** (all fields optional):
+```json
+{
+  "name": "Ahmad bin Ali Updated",
+  "email": "newemail@example.com",
+  "password": "newpassword123"
+}
+```
+
+**Validation:**
+- `name` — optional, 2–150 chars
+- `email` — optional, valid email format
+- `password` — optional, min 6 chars
+
+**Response `200 OK`:**
+```json
+{
+  "message": "Profile updated",
+  "user": {
+    "id": 1,
+    "name": "Ahmad bin Ali Updated",
+    "email": "newemail@example.com",
+    "role": "member"
+  }
+}
+```
+
+---
+
 ## Activity Logs
 
 ### GET /api/activitylogs
@@ -218,7 +272,7 @@ Create a new activity log.
 
 **Validation:**
 - `activity_type_id` — required, positive integer
-- `title` — required, 1-200 chars
+- `title` — required, 1–200 chars
 - `amount` — required, positive number
 
 **Response `201 Created`:**
@@ -304,14 +358,14 @@ Delete an activity log.
 ## Activity Types
 
 ### GET /api/activitytypes
-Get all activity types. Supports filtering by category.
+Get all activity types. Supports filtering by name or category.
 
 **Auth:** Required
 
 **Query Parameters:**
 | Parameter | Type | Description |
 |---|---|---|
-| `q` | string | Filter by category (e.g. `meal`, `transport`, `energy`, `recycle`) |
+| `q` | string | Search by name or category (e.g. `meal`, `transport`) |
 | `limit` | integer | Max number of results (optional) |
 
 **Response `200 OK`:**
@@ -374,8 +428,8 @@ Create a new activity type.
 
 **Validation:**
 - `category` — required, one of: `transport`, `meal`, `energy`, `recycle`
-- `name` — required, 1-150 chars
-- `unit` — required, 1-50 chars
+- `name` — required, 1–150 chars
+- `unit` — required, 1–50 chars
 - `co2_per_unit` — required, non-negative number
 
 **Response `201 Created`:**
@@ -442,6 +496,145 @@ Delete an activity type.
     "id": 5,
     "name": "Motorcycle (Petrol)"
   }
+}
+```
+
+---
+
+## Badges
+
+### GET /api/badges
+Get all badges, showing which ones the authenticated user has earned.
+
+**Auth:** Required
+
+**Response `200 OK`:**
+```json
+{
+  "count": 3,
+  "data": [
+    {
+      "badge_id": 1,
+      "name": "First Step",
+      "description": "Log 1 eco-activity.",
+      "criteria_type": "total_logs",
+      "threshold": 1,
+      "unlocked": true,
+      "earned_at": "2026-06-28 10:00:00"
+    },
+    {
+      "badge_id": 2,
+      "name": "Carbon Saver",
+      "description": "Save a total of 10 kg of CO₂ through your activities.",
+      "criteria_type": "total_co2_saved_kg",
+      "threshold": 10,
+      "unlocked": false,
+      "earned_at": null
+    }
+  ]
+}
+```
+
+---
+
+### POST /api/badges/check
+Check if the authenticated user has met the criteria for any unearned badges and award them automatically.
+
+**Auth:** Required
+
+**Request Body:** None required
+
+**Response `200 OK`:**
+```json
+{
+  "awarded": [
+    {
+      "badge_id": 1,
+      "name": "First Step",
+      "description": "Log 1 eco-activity."
+    }
+  ]
+}
+```
+
+---
+
+### POST /api/badges
+Create a new global badge.
+
+**Auth:** Required (admin only)
+
+**Request Body:**
+```json
+{
+  "name": "Solar Pioneer",
+  "criteria_type": "total_logs",
+  "threshold": 25
+}
+```
+
+For streak-based badges:
+```json
+{
+  "name": "Transport Warrior",
+  "criteria_type": "activity_category_streak",
+  "days": 7,
+  "category": "transport",
+  "activity_type_id": 3
+}
+```
+
+**Validation:**
+- `name` — required, 1–150 chars
+- `criteria_type` — required, one of: `total_logs`, `total_co2_saved_kg`, `activity_category_streak`
+- `threshold` — required for `total_logs` and `total_co2_saved_kg`, positive integer
+- `days` — required for `activity_category_streak`, positive integer
+- `category` — required for `activity_category_streak`
+- `activity_type_id` — required for `activity_category_streak`
+
+**Response `201 Created`:**
+```json
+{
+  "message": "Badge created",
+  "data": {
+    "badge_id": 3,
+    "name": "Solar Pioneer",
+    "description": "Log 25 eco-activity.",
+    "criteria_type": "total_logs",
+    "threshold": 25
+  }
+}
+```
+
+**Response `403 Forbidden`:**
+```json
+{
+  "error": "Admins only"
+}
+```
+
+---
+
+### DELETE /api/badges/{id}
+Delete a badge.
+
+**Auth:** Required (admin only)
+
+**Response `200 OK`:**
+```json
+{
+  "message": "Badge deleted",
+  "data": {
+    "id": 3,
+    "name": "Solar Pioneer"
+  }
+}
+```
+
+**Response `404 Not Found`:**
+```json
+{
+  "error": "Badge not found"
 }
 ```
 
@@ -524,7 +717,7 @@ Create a new template.
 
 **Validation:**
 - `activity_type_id` — required, positive integer
-- `title` — required, 1-200 chars
+- `title` — required, 1–200 chars
 - `description` — optional, max 300 chars
 - `amount` — required, positive number
 
@@ -606,6 +799,317 @@ Delete a template.
 
 ---
 
+## Challenges
+
+### GET /api/challenges
+Get all available challenges with join status for the authenticated user.
+
+**Auth:** Required
+
+**Response `200 OK`:**
+```json
+{
+  "count": 2,
+  "data": [
+    {
+      "id": 1,
+      "title": "30-Day Green Commute",
+      "description": "Use public transport or cycle every day for 30 days.",
+      "target_goal": 30,
+      "unit": "days",
+      "joined": true,
+      "created_at": "2026-06-01 00:00:00"
+    }
+  ]
+}
+```
+
+---
+
+### POST /api/challenges
+Create a new challenge.
+
+**Auth:** Required (admin only)
+
+**Request Body:**
+```json
+{
+  "title": "30-Day Green Commute",
+  "description": "Use public transport or cycle every day for 30 days.",
+  "target_goal": 30,
+  "unit": "days"
+}
+```
+
+**Validation:**
+- `title` — required, 1–200 chars
+- `description` — optional
+- `target_goal` — required, positive number
+- `unit` — required
+
+**Response `201 Created`:**
+```json
+{
+  "message": "Challenge created",
+  "data": {
+    "id": 1,
+    "title": "30-Day Green Commute",
+    "description": "Use public transport or cycle every day for 30 days.",
+    "target_goal": 30,
+    "unit": "days"
+  }
+}
+```
+
+---
+
+### POST /api/challenges/join
+Join a challenge.
+
+**Auth:** Required
+
+**Request Body:**
+```json
+{
+  "challenge_id": 1
+}
+```
+
+**Response `200 OK`:**
+```json
+{
+  "message": "Joined challenge"
+}
+```
+
+**Response `409 Conflict`:**
+```json
+{
+  "error": "Already joined this challenge"
+}
+```
+
+---
+
+### POST /api/challenges/leave
+Leave a challenge.
+
+**Auth:** Required
+
+**Request Body:**
+```json
+{
+  "challenge_id": 1
+}
+```
+
+**Response `200 OK`:**
+```json
+{
+  "message": "Left challenge"
+}
+```
+
+---
+
+### GET /api/challenges/{id}/leaderboard
+Get the leaderboard for a specific challenge.
+
+**Auth:** Required
+
+**Response `200 OK`:**
+```json
+{
+  "challenge_id": 1,
+  "title": "30-Day Green Commute",
+  "leaderboard": [
+    {
+      "rank": 1,
+      "user_id": 3,
+      "name": "Siti Aminah",
+      "progress": 28
+    },
+    {
+      "rank": 2,
+      "user_id": 1,
+      "name": "Ahmad bin Ali",
+      "progress": 22
+    }
+  ]
+}
+```
+
+---
+
+### DELETE /api/challenges/{id}
+Delete a challenge.
+
+**Auth:** Required (admin only)
+
+**Response `200 OK`:**
+```json
+{
+  "message": "Challenge deleted",
+  "data": {
+    "id": 1,
+    "title": "30-Day Green Commute"
+  }
+}
+```
+
+**Response `404 Not Found`:**
+```json
+{
+  "error": "Challenge not found"
+}
+```
+
+---
+
+## Eco Tips
+
+### GET /api/ecotips
+Get all eco tips.
+
+**Auth:** Required
+
+**Response `200 OK`:**
+```json
+{
+  "count": 3,
+  "data": [
+    {
+      "id": 1,
+      "title": "Switch to LED bulbs",
+      "content": "LED bulbs use up to 80% less energy than traditional incandescent bulbs.",
+      "category": "energy",
+      "created_at": "2026-06-01 00:00:00"
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/ecotips/{id}
+Get a single eco tip by ID.
+
+**Auth:** Required
+
+**Response `200 OK`:**
+```json
+{
+  "id": 1,
+  "title": "Switch to LED bulbs",
+  "content": "LED bulbs use up to 80% less energy than traditional incandescent bulbs.",
+  "category": "energy",
+  "created_at": "2026-06-01 00:00:00"
+}
+```
+
+**Response `404 Not Found`:**
+```json
+{
+  "error": "Eco tip not found"
+}
+```
+
+---
+
+### POST /api/ecotips
+Create a new eco tip.
+
+**Auth:** Required (admin only)
+
+**Request Body:**
+```json
+{
+  "title": "Switch to LED bulbs",
+  "content": "LED bulbs use up to 80% less energy than traditional incandescent bulbs.",
+  "category": "energy"
+}
+```
+
+**Validation:**
+- `title` — required, 1–200 chars
+- `content` — required
+- `category` — required, one of: `transport`, `meal`, `energy`, `recycle`
+
+**Response `201 Created`:**
+```json
+{
+  "message": "Eco tip created",
+  "data": {
+    "id": 1,
+    "title": "Switch to LED bulbs",
+    "content": "LED bulbs use up to 80% less energy than traditional incandescent bulbs.",
+    "category": "energy"
+  }
+}
+```
+
+---
+
+### PUT /api/ecotips/{id}
+Update an existing eco tip.
+
+**Auth:** Required (admin only)
+
+**Request Body** (all fields optional):
+```json
+{
+  "title": "Updated tip title",
+  "content": "Updated content here."
+}
+```
+
+**Response `200 OK`:**
+```json
+{
+  "message": "Eco tip updated",
+  "data": {
+    "id": 1,
+    "title": "Updated tip title",
+    "content": "Updated content here.",
+    "category": "energy"
+  }
+}
+```
+
+**Response `404 Not Found`:**
+```json
+{
+  "error": "Eco tip not found"
+}
+```
+
+---
+
+### DELETE /api/ecotips/{id}
+Delete an eco tip.
+
+**Auth:** Required (admin only)
+
+**Response `200 OK`:**
+```json
+{
+  "message": "Eco tip deleted",
+  "data": {
+    "id": 1,
+    "title": "Switch to LED bulbs"
+  }
+}
+```
+
+**Response `404 Not Found`:**
+```json
+{
+  "error": "Eco tip not found"
+}
+```
+
+---
+
 ## Error Responses
 
 All endpoints may return the following common errors:
@@ -616,4 +1120,5 @@ All endpoints may return the following common errors:
 | `401` | Missing or invalid token |
 | `403` | Forbidden — insufficient permissions |
 | `404` | Resource not found |
-| `409` | Conflict — e.g. email already exists |
+| `409` | Conflict — e.g. email already exists or already joined |
+| `429` | Too Many Requests — rate limit exceeded |

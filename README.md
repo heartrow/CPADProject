@@ -61,84 +61,127 @@ Built as part of the **Bachelor in Software Engineering — Cross-Platform Appli
 ## 🗂️ Project Structure
 
 ```
-CPADProject/
-└── GreenStep/
-    ├── public/                         # Slim4 entry point
-    │   ├── index.php                   # API entry point
-    │   └── .htaccess
-    │
-    ├── src/                            # Shared source (Vue + PHP)
-    │   ├── api/
-    │   │   └── client.js               # Axios instance
-    │   │
-    │   ├── assets/                     # Icons and images
-    │   │
-    │   ├── components/                 # Reusable Vue components
-    │   │   ├── modals/
-    │   │   │   ├── CreatePresetModal.vue
-    │   │   │   ├── EnergyModal.vue
-    │   │   │   ├── EventLoggerModal.vue
-    │   │   │   ├── LeaderboardModal.vue
-    │   │   │   ├── MealModal.vue
-    │   │   │   ├── RecycleModal.vue
-    │   │   │   └── TransportModal.vue
-    │   │   ├── SideBar.vue
-    │   │   └── TopBar.vue
-    │   │
-    │   ├── Auth/
-    │   │   └── JwtService.php          # JWT issue & verify
-    │   │
-    │   ├── Controllers/                # Slim4 request handlers
-    │   │   ├── AuthController.php
-    │   │   ├── LogController.php
-    │   │   ├── TemplateController.php
-    │   │   └── TypeController.php
-    │   │
-    │   ├── Middlewares/                # Slim4 middleware
-    │   │   ├── AuthMiddleware.php
-    │   │   ├── Cors.php
-    │   │   ├── JsonBodyParser.php
-    │   │   ├── RateLimit.php
-    │   │   └── SecurityHeaders.php
-    │   │
-    │   ├── Repositories/              # PDO database queries
-    │   │   ├── LogRepository.php
-    │   │   ├── TemplateRepository.php
-    │   │   ├── TypeRepository.php
-    │   │   └── UserRepository.php
-    │   │
-    │   ├── Validation/
-    │   │   └── Validator.php          # Input validation
-    │   │
-    │   ├── router/
-    │   │   └── index.js               # Vue Router
-    │   │
-    │   ├── stores/
-    │   │   └── auth.js                # Pinia auth store
-    │   │
-    │   ├── Database.php               # PDO connection
-    │   ├── Routes.php                 # Slim4 route definitions
-    │   ├── App.vue                    # Vue root component
-    │   ├── main.js                    # Vue entry point
-    │   └── style.css                  # Global styles
-    │
-    ├── views/                         # Vue page views
-    │   ├── ActivityView.vue
-    │   ├── ChallengesView.vue
-    │   ├── DashboardView.vue
-    │   ├── LoginView.vue
-    │   ├── ProfileView.vue
-    │   └── RegisterView.vue
-    │
-    ├── mysql/                         # Database schema files
-    │   ├── activityLog.sql
-    │   ├── activityType.sql
-    │   └── user.sql
-    │
-    ├── composer.json                  # PHP dependencies
-    ├── package.json                   # Node dependencies
-    ├── vite.config.js                 # Vite configuration
-    └── index.html                     # Vue app entry HTML
+GreenStep/
+│
+├── 📄 index.html                   # Vite HTML entry point
+├── 📄 vite.config.js               # Vite configuration
+├── 📄 jsconfig.json                # JS path aliases
+├── 📄 package.json                 # Node dependencies & scripts
+├── 📄 package-lock.json
+├── 📄 composer.json                # PHP dependencies
+├── 📄 composer.lock
+├── 📄 Dockerfile                   # Docker build config for Railway
+├── 📄 eslint.config.js             # ESLint rules
+├── 📄 .prettierrc.json             # Prettier formatting rules
+├── 📄 .oxlintrc.json               # OXLint config
+├── 📄 .editorconfig                # Editor formatting standards
+├── 📄 .env                         # Environment variables (local)
+├── 📄 .env.development             # Environment variables (dev)
+├── 📄 .env.example                 # Environment variable template
+│
+├── 📁 public/                      # PHP public entry point
+│   ├── 📄 index.php                # Slim 4 app entry point
+│   ├── 📄 .htaccess                # Apache URL rewrite rules
+│   └── 📄 favicon.ico
+│
+├── 📁 mysql/                       # Database schema SQL files
+│   ├── 📄 user.sql
+│   ├── 📄 activityLog.sql
+│   ├── 📄 activityType.sql
+│   ├── 📄 badges.sql
+│   ├── 📄 challenges.sql
+│   ├── 📄 userChallenges.sql
+│   └── 📄 ecoTips.sql
+│
+├── 📁 src/                         # Application source code
+│   │
+│   ├── 📄 main.js                  # Vue app bootstrap
+│   ├── 📄 App.vue                  # Root Vue component
+│   ├── 📄 style.css                # Global styles & CSS variables
+│   │
+│   ├── 📁 api/
+│   │   └── 📄 client.js            # Axios API client (base URL, interceptors)
+│   │
+│   ├── 📁 router/
+│   │   └── 📄 index.js             # Vue Router route definitions
+│   │
+│   ├── 📁 stores/
+│   │   └── 📄 auth.js              # Pinia auth store (JWT state)
+│   │
+│   ├── 📁 assets/                  # Static images & SVG icons
+│   │   ├── 📄 activity-icon-black.png
+│   │   ├── 📄 activity-icon-white.png
+│   │   ├── 📄 badges-icon-black.png
+│   │   ├── 📄 badges-icon-white.png
+│   │   ├── 📄 challenges-icon-black.png
+│   │   ├── 📄 challenges-icon-white.png
+│   │   ├── 📄 dashboard-icon-black.png
+│   │   ├── 📄 dashboard-icon-white.png
+│   │   ├── 📄 profile-icon-black.png
+│   │   ├── 📄 profile-icon-white.png
+│   │   ├── 📄 award.svg
+│   │   ├── 📄 trophy.svg
+│   │   ├── 📄 layout-dashboard.svg
+│   │   ├── 📄 notebook-pen.svg
+│   │   ├── 📄 user-round.svg
+│   │   ├── 📄 user-check.svg
+│   │   └── 📄 user-check.png
+│   │
+│   ├── 📁 components/              # Reusable Vue components
+│   │   ├── 📄 TopBar.vue           # Top navigation bar
+│   │   ├── 📄 SideBar.vue          # Side navigation menu
+│   │   └── 📁 modals/              # Modal dialog components
+│   │       ├── 📄 EventLoggerModal.vue     # Activity category picker
+│   │       ├── 📄 TransportModal.vue       # Log transport activity
+│   │       ├── 📄 MealModal.vue            # Log meal activity
+│   │       ├── 📄 EnergyModal.vue          # Log energy activity
+│   │       ├── 📄 RecycleModal.vue         # Log recycling activity
+│   │       ├── 📄 CreatePresetModal.vue    # Create/edit activity preset
+│   │       ├── 📄 CreateChallengeModal.vue # Admin: create challenge
+│   │       └── 📄 LeaderboardModal.vue     # Challenge leaderboard
+│   │
+│   ├── 📁 Auth/                    # PHP authentication
+│   │   └── 📄 JwtService.php       # JWT encode/decode/verify
+│   │
+│   ├── 📁 Controllers/             # PHP Slim 4 route controllers
+│   │   ├── 📄 AuthController.php   # Register, login, logout
+│   │   ├── 📄 LogController.php    # Activity log CRUD
+│   │   ├── 📄 TypeController.php   # Activity type CRUD
+│   │   ├── 📄 BadgeController.php  # Badge management & awarding
+│   │   ├── 📄 ChallengeController.php  # Challenge management
+│   │   ├── 📄 TemplateController.php   # User preset templates
+│   │   └── 📄 EcoTipController.php     # Eco tips feed
+│   │
+│   ├── 📁 Repositories/            # PHP data access layer (PDO)
+│   │   ├── 📄 UserRepository.php
+│   │   ├── 📄 LogRepository.php
+│   │   ├── 📄 TypeRepository.php
+│   │   ├── 📄 BadgeRepository.php
+│   │   ├── 📄 ChallengeRepository.php
+│   │   ├── 📄 TemplateRepository.php
+│   │   └── 📄 EcoTipsRepository.php
+│   │
+│   ├── 📁 Middlewares/             # Slim 4 middleware stack
+│   │   ├── 📄 AuthMiddleware.php   # JWT authentication guard
+│   │   ├── 📄 Cors.php             # CORS headers
+│   │   ├── 📄 JsonBodyParser.php   # Parse JSON request body
+│   │   ├── 📄 RateLimit.php        # Request rate limiting
+│   │   └── 📄 SecurityHeaders.php  # HTTP security headers
+│   │
+│   ├── 📁 Validation/
+│   │   └── 📄 Validator.php        # Input validation helper
+│   │
+│   ├── 📄 Database.php             # PDO database connection singleton
+│   └── 📄 Routes.php               # Slim 4 route definitions
+│
+└── 📁 views/                       # Vue page-level views
+    ├── 📄 LoginView.vue             # Login page
+    ├── 📄 RegisterView.vue          # Registration page
+    ├── 📄 DashboardView.vue         # Main dashboard
+    ├── 📄 ActivityView.vue          # Activity logging & history
+    ├── 📄 ChallengesView.vue        # Challenges & leaderboard
+    ├── 📄 ProfileView.vue           # User profile & settings
+    └── 📄 AdminView.vue             # Admin configuration panel
 ```
 
 ---
