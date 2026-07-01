@@ -13,5 +13,5 @@ $app->add(new App\Middlewares\SecurityHeaders());
 $app->add(new App\Middlewares\JsonBodyParser()); 
 $app->add(new App\Middlewares\Cors()); 
 $app->addErrorMiddleware(true, true, true); 
-(require __DIR__ . '/../src/routes.php')($app); 
+(require __DIR__ . '/../src/Routes.php')($app); 
 $app->run(); 
