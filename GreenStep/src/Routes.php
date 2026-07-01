@@ -141,6 +141,7 @@ return function (App $app): void {
         $g->post ('/join',               [$challengeCtrl, 'join']);
         $g->post ('/leave',              [$challengeCtrl, 'leave']);
         $g->get  ('/{id}/leaderboard',   [$challengeCtrl, 'leaderboard']);
+        $g->delete('/{id}',              [$challengeCtrl, 'delete']);
     })->add($auth);
 
     // /auth/me requires a valid JWT.
