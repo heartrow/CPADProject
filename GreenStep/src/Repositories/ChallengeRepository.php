@@ -88,4 +88,15 @@ class ChallengeRepository
         $stmt->execute([$activityTypeId]);
         return $stmt->fetchColumn() !== false;
     }
+
+    public function deleteChallenge(int $challengeId): bool
+    {
+        $stmtUsers = $this->db->prepare('DELETE FROM user_challenges WHERE challenge_id = ?');
+        $stmtUsers->execute([$challengeId]);
+
+        $stmt = $this->db->prepare('DELETE FROM challenges WHERE id = ?');
+        $stmt->execute([$challengeId]);
+        
+        return $stmt->rowCount() > 0;
+    }
 }

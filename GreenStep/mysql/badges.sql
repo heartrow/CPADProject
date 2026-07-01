@@ -17,6 +17,7 @@ CREATE TABLE badges (
     name            VARCHAR(150) NOT NULL,
     criteria_json   JSON         NOT NULL,
     image_url       VARCHAR(500) NOT NULL,
+    icon            VARCHAR(255) NULL,
 
     created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -52,31 +53,36 @@ CREATE TABLE user_badges (
 -- ============================================================
 -- SEED DATA: badges
 -- ============================================================
-INSERT INTO badges (name, criteria_json, image_url) VALUES
+INSERT INTO badges (name, criteria_json, image_url, icon) VALUES
     (
         'First Step',
         '{"type": "total_logs", "threshold": 1}',
-        'https://greenstep.app/badges/first-step.png'
+        'https://greenstep.app/badges/first-step.png',
+        '🐾'
     ),
     (
         'Green Beginner',
         '{"type": "total_co2_saved_kg", "threshold": 10}',
-        'https://greenstep.app/badges/green-beginner.png'
+        'https://greenstep.app/badges/green-beginner.png',
+        '🌱'
     ),
     (
         'Eco Warrior',
         '{"type": "total_co2_saved_kg", "threshold": 100}',
-        'https://greenstep.app/badges/eco-warrior.png'
+        'https://greenstep.app/badges/eco-warrior.png',
+        '🛡️'
     ),
     (
         'Plant-Based Pioneer',
         '{"type": "activity_category_streak", "category": "meal", "activity_type_id": 5, "days": 7}',
-        'https://greenstep.app/badges/plant-based-pioneer.png'
+        'https://greenstep.app/badges/plant-based-pioneer.png',
+        '🌿'
     ),
     (
         'Public Transport Champion',
         '{"type": "activity_category_logs", "category": "transport", "activity_type_ids": [8, 9], "threshold": 20}',
-        'https://greenstep.app/badges/transport-champion.png'
+        'https://greenstep.app/badges/transport-champion.png',
+        '🚌'
     );
 
 -- ============================================================

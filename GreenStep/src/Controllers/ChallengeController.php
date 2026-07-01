@@ -172,4 +172,36 @@ public function create(Request $request, Response $response): Response
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     }
+
+    public function delete(Request $request, Response $response, array $args): Response 
+    {
+        $tokenPayload = (array) $request->getAttribute('auth');
+        $role = $tokenPayload['role'] ?? 'user'; 
+
+        if ($role !== 'admin' && $role !== 'leader') {
+            $response->getBody()->write(json_encode([
+                'error' => 'Forbidden: Only admins and leaders can delete challenges.'
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+        }
+
+        $challengeId = (int) ($args['id'] ?? 0);
+
+        if ($challengeId === 0) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid challenge ID.']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        try {
+            $this->repo->deleteChallenge($challengeId);
+            
+            $response->getBody()->write(json_encode(['success' => true]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode([
+                'error' => 'Failed to delete challenge: ' . $e->getMessage()
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    }
 }
