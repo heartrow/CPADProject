@@ -3,9 +3,6 @@ CREATE DATABASE IF NOT EXISTS railway
 
 USE railway;
 
--- -----------------------------------------------------
--- Table structure for table `eco_tips`
--- -----------------------------------------------------
 DROP TABLE IF EXISTS eco_tips; 
 CREATE TABLE eco_tips (
     id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -13,9 +10,6 @@ CREATE TABLE eco_tips (
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- -----------------------------------------------------
--- Seed data for table `eco_tips`
--- -----------------------------------------------------
 INSERT INTO eco_tips (tip_text) VALUES 
 ('Unplug electronics when not in use. Standby power can account for up to 10% of your total household electricity bill!'),
 ('Wash clothes in cold water. About 75% to 90% of all the energy your washing machine uses goes solely into heating the water.'),

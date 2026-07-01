@@ -8,6 +8,7 @@ use App\Controllers\TemplateController;
 use App\Controllers\TypeController;
 use App\Controllers\LogController;
 use App\Controllers\ChallengeController;
+use App\Controllers\EcoTipController;
 use App\Database;
 use App\Middlewares\AuthMiddleware;
 use App\Repositories\BadgeRepository;
@@ -17,6 +18,7 @@ use App\Repositories\UserRepository;
 use App\Repositories\LogRepository;
 use App\Repositories\TemplateRepository;
 use App\Repositories\ChallengeRepository;
+use App\Repositories\EcoTipRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
@@ -27,7 +29,7 @@ return function (App $app): void {
     $app->add(function (Request $request, RequestHandler $handler) {
         $response = $handler->handle($request);
         return $response
-            ->withHeader('Access-Control-Allow-Origin', '*') // Allows your Vue app to connect
+            ->withHeader('Access-Control-Allow-Origin', '*') 
             ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     });
@@ -43,6 +45,9 @@ return function (App $app): void {
     $logCtrl   = new LogController(new LogRepository($pdo), $badgeCtrl);
     $templateCtrl = new TemplateController(new TemplateRepository($pdo));
     $challengeCtrl = new ChallengeController($challengeRepo);
+    
+    // Wire up the EcoTip Repository and Controller directly here!
+    $ecoTipCtrl = new EcoTipController(new EcoTipRepository($pdo));
     
     // Public — no token required.
     $app->get('/', function (Request $r, Response $s) {
@@ -71,7 +76,6 @@ return function (App $app): void {
 
                     'GET    /api/badges',
                     'POST   /api/badges/check',
-
                     
                     'GET    /api/usertemplates',
                     'GET    /api/usertemplates/{id}',
@@ -84,6 +88,8 @@ return function (App $app): void {
                     'POST   /api/challenges/join',
                     'POST   /api/challenges/leave',
                     'GET    /api/challenges/{id}/leaderboard',
+
+                    'GET    /api/ecotips', // Documented endpoint info
                 ],
             ],
         ]));
@@ -114,15 +120,15 @@ return function (App $app): void {
         $g->get     ('/{id}',   [$typeCtrl, 'show']);
         $g->post    ('',        [$typeCtrl, 'create']);
         $g->put     ('/{id}',   [$typeCtrl, 'update']);
-        $g->delete  ('/{id}',   [$typeCtrl, 'delete']);   // controller also enforces role=admin
+        $g->delete  ('/{id}',   [$typeCtrl, 'delete']);   
     })->add($auth);
 
     // -- Badge routes -------------------------------------------------
     $app->group('/api/badges', function ($g) use ($badgeCtrl) {
-        $g->get    ('',        [$badgeCtrl, 'index']);    // GET  /api/badges
-        $g->post   ('/check',  [$badgeCtrl, 'check']);    // POST /api/badges/check
-        $g->post   ('',        [$badgeCtrl, 'store']);    // POST /api/badges        (admin only)
-        $g->delete ('/{id}',   [$badgeCtrl, 'destroy']); // DELETE /api/badges/{id} (admin only)
+        $g->get    ('',        [$badgeCtrl, 'index']);    
+        $g->post   ('/check',  [$badgeCtrl, 'check']);    
+        $g->post   ('',        [$badgeCtrl, 'store']);    
+        $g->delete ('/{id}',   [$badgeCtrl, 'destroy']); 
     })->add($auth);
 
      // -- Templates routes -------------------------------------------------
@@ -143,10 +149,13 @@ return function (App $app): void {
         $g->get  ('/{id}/leaderboard',   [$challengeCtrl, 'leaderboard']);
     })->add($auth);
 
+    // -- Eco Tips routes -------------------------------------------------
+    $app->get('/api/ecotips', [$ecoTipCtrl, 'index'])->add($auth);
+
     // /auth/me requires a valid JWT.
     $app->get('/auth/me', [$authCtrl, 'me'])->add($auth);
     $app->put('/auth/profile', [$authCtrl, 'updateProfile'])->add($auth);
 
     // CORS pre-flight catch-all.
-    $app->options('/{routes:.+}', fn(Request $r, Response $s) => $s);
+    $app->options('/{routes:..+}', fn(Request $r, Response $s) => $s);
 };
