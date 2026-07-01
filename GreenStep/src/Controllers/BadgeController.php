@@ -240,11 +240,14 @@ final class BadgeController
         };
     }
 
-    // Mirrors LogController — reads 'sub' from the JWT payload set by AuthMiddleware
+    // Mirrors LogController — reads the authenticated user id from the JWT
+    // payload set by AuthMiddleware. JwtService issues tokens with an 'id'
+    // claim (not 'sub'), so 'sub' is kept only as a defensive first choice
+    // in case that ever changes.
     private function getAuthenticatedUserId(Request $r): int
     {
         $auth = (array) $r->getAttribute('auth', []);
-        return (int) ($auth['sub'] ?? 0);
+        return (int) ($auth['sub'] ?? $auth['id'] ?? 0);
     }
 
     private function json(Response $r, $data, int $code = 200): Response
